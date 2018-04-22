@@ -8,12 +8,16 @@
 #' described.  Random coefficients are based on either RRPP or FRPP, as defined by the 
 #' \code{\link{lm.rrpp}} model fit.  If RRPP is used, all distributions of coefficient vector distances are 
 #' based on appropriate null models as defined by SS type.
+#' 
+#' This function can be used to test the specific coefficients of an lm.rrpp fit.  The test
+#' statistics are the distances (d), which are also standardized (Z-scores).  The Z-scores might be easier to compare,
+#' as the expected values for random distances can vary among coefficient vectors (Adams and Collyer 2016).
 #'
 #' @param object Object from \code{\link{lm.rrpp}}
 #' @param test Logical argument that if TRUE, performs hypothesis tests (Null hypothesis is vector distance = 0)
 #' for the observed coefficients.  If FALSE, only the observed coefficients are returned.
-#' @param confidence The desired confidence interval level to print with a table of summary statistics,
-#' if test = TRUE.
+#' @param confidence The desired confidence limit to print with a table of summary statistics,
+#' if test = TRUE.  Because distances are directionless, confidence limits are one-tailed.
 #' @param ... Other arguments (currently none)
 #' @export
 #' @author Michael Collyer
@@ -29,12 +33,12 @@
 #' fit <- lm.rrpp(coords ~ logSize + Sex*Pop, SS.type = "I", data = Pupfish) 
 #' 
 #' coef(fit)
-#' coef(fit, confidence = 0.99)
+#' coef(fit, test = TRUE, confidence = 0.99)
 coef.lm.rrpp <- function(object, test = FALSE, confidence = 0.95, ...) {
   x <- object
   rc <- x$LM$random.coef
   rd <- x$LM$random.coef.distances
-  n <- x$LM$n; p <- x$LM$p
+  n <- x$LM$n; p <- x$LM$p; p.prime = x$LM$p.prime
   model.terms <- x$LM$Terms
   k <- length(x$LM$term.labels)
   coef.obs <- rc[[k]][[1]]
@@ -43,29 +47,26 @@ coef.lm.rrpp <- function(object, test = FALSE, confidence = 0.95, ...) {
   RRPP <- x$PermInfo$perm.method
   gls <- x$LM$gls
   if(test){
-    alpha = 1 - confidence
-    if(alpha < 0) stop("Confidence level should be between 0 and 1")
+    if(confidence < 0) stop("Confidence level should be between 0 and 1")
+    if(confidence > 1) stop("Confidence level should be between 0 and 1")
     if(k > 0) {
       PV <- apply(rd, 1, pval)
       Z <- apply(rd, 1, effect.size)
-      lcl <- apply(rd, 1, function(x) quantile(x, alpha/2))
-      ucl <- apply(rd, 1, function(x) quantile(x, (1 - alpha/2)))
-      stat.tab <- data.frame(d.obs = rd[,1], lcl=lcl, ucl=ucl, Z=Z, P=PV)
+      ucl <- apply(rd, 1, function(x) quantile(x, confidence))
+      stat.tab <- data.frame(d.obs = rd[,1], ucl=ucl, Zd=Z, P=PV)
     } else {
       PV <- pval(rd)
       Z <- pval(rd)
-      lcl <- quantile(rd, alpha/2)
-      ucl <- quantile(rd, (1 - alpha/2))
-      stat.tab <- data.frame(d.obs = rd[1], lcl=lcl, ucl=ucl, Z=Z, P=PV)
+      ucl <- quantile(rd, confidence)
+      stat.tab <- data.frame(d.obs = rd[1],  ucl=ucl, Zd=Z, P=PV)
     }
     
-    colnames(stat.tab)[2] <- paste("LCL (", alpha/2*100,"%)", sep = "")
-    colnames(stat.tab)[3] <- paste("UCL (", (1 -alpha/2)*100,"%)", sep = "")
-    colnames(stat.tab)[5] <- "Pr(>d)"
+    colnames(stat.tab)[2] <- paste("UCL (", confidence*100,"%)", sep = "")
+    colnames(stat.tab)[4] <- "Pr(>d)"
     out <- list(coef.obs = coef.obs,
                 random.coef = rc,
                 random.distances = rd,
-                n = n, p=p, k.terms = k, confidence = confidence,
+                n = n, p=p, p.prime=p.prime, k.terms = k, confidence = confidence,
                 model.terms = model.terms, nperms = perms,
                 RRPP = RRPP, gls=gls, SS.type = SS.type,
                 stat.table = stat.tab, test = test)

@@ -1,22 +1,29 @@
 #' @name RRPP-package
 #' @docType package
 #' @aliases RRPP
-#' @title Linear model evaluation with Randomized Residual Permutation Procedures
+#' @title Linear Model Evaluation with Randomized Residual Permutation Procedures
 #' @author Michael Collyer and Dean Adams
-#'
+#' @return Key functions for this package:
+#' \item{\code{\link{lm.rrpp}}}{Fits linear models, using RRPP.}
+#' \item{\code{\link{anova.lm.rrpp}}}{ANOVA on linear models, using RRPP, plus model comparisons.}
+#' \item{\code{\link{coef.lm.rrpp}}}{Extract coefficients or perform test on coefficients, using RRPP.}
+#' \item{\code{\link{predict.lm.rrpp}}}{Predict values from lm.rrpp fits and generate boostrapped confidence intervals.}
+#' \item{\code{\link{pairwise}}}{Perform pairwise tests, based on lm.rrpp model fits.}
+#' 
 #' @description Functions in this package allow one to evaluate linear models with residual randomization.
 #' The name, "RRPP", is an acronym for, "Randomization of Residuals in a Permutation Procedure."  Through
 #' the various functions in this package, one can use randomization of residuals to generate empirical probability
 #' distributions for linear model effects, for high-dimensional data or distance matrices.
-#'
+#' 
+#' An especially useful option of this package is to fit models with either ordinary or generalized
+#' least squares estimation (OLS or GLS, respectively), using theoretic covariance matrices.  Mixed linear
+#' effects can also be evaluated.
+#' 
 #' @import parallel
 #' @import stats
 #' @import graphics
-#' @importFrom utils setTxtProgressBar
-#' @importFrom utils txtProgressBar
+#' @import utils
 
-#' @section RRPP TOC:
-#' RRPP-package
 NULL
 
 
@@ -64,7 +71,7 @@ NULL
 #' @details The covariance matrix was estimated with the vcv.phylo function of the R package, ape, based on the tree
 #' described in Adams and Collyer (2018).
 #' @references Adams, D.C and Collyer, M.L. 2018. Multivariate phylogenetic anova: group-clade aggregation, biological 
-#' challenges, and a refined permutation procedure. Evolution. Submitted.
+#' challenges, and a refined permutation procedure. Evolution. In press.
 NULL
 #####----------------------------------------------------------------------------------------------------
 
@@ -580,7 +587,7 @@ rrpp.fit <- function(f1, keep.order=FALSE, pca=TRUE,
         names(dat) <- tl
         dat <- as.data.frame(dat)
     }
-    if(pca) d$Y <- prcomp(d$Y)$x
+    if(pca) d$Y <- prcomp(d$Y, tol = sqrt(.Machine$double.eps))$x
     dat$Y <- d$Y
     pdf.args <- list(data=dat,
                      x = model.matrix(Terms, data = dat),
@@ -991,7 +998,7 @@ cm.U <- function(x){
   out
 }
 
-# beta.lm.iter
+# beta.iter
 # gets appropriate beta vectors for random permutations in lm.rrpp
 # generates distances as statistics for summary
 
@@ -1073,20 +1080,28 @@ beta.iter <- function(fit, ind, P = NULL, RRPP = TRUE, print.progress = TRUE) {
     colnames(result) <- c("obs", paste("iter", seq(1,(perms-1),1), sep = "."))
     result
   })
-  beta.names <- lapply(1:length(beta.mats), function(j) rownames(beta.mats[[j]][[1]]))
+  
   names(beta.mats) <- names(beta.mat.d) <- trms
-  beta.hyp <- list()
-  beta.hyp[[1]] <- beta.names[[1]]
-  if(k > 1) for(i in 2:k) 
-    beta.hyp[[i]] <- beta.names[[i]][which(!beta.names[[i]]%in%beta.names[[i-1]])]
-  d.stitched <- lapply(1:k, function(j){
-    b <- beta.mat.d[[j]]
-    b <- b[match(beta.hyp[[j]], row.names(b)),]
-    if(is.matrix(b)) t(b) else b
-  })
-  d.stitched <- t(matrix(unlist(d.stitched), perms, length(beta.names[[k]])))
-  rownames(d.stitched) <- beta.names[[k]]
-  colnames(d.stitched) <- colnames(beta.mat.d[[1]])
+  
+  if(k == 1) d.stitched <- beta.mat.d[[1]]
+  
+  if(k > 1) {
+    d.stitched <- beta.mat.d[[k]]
+    
+    beta.match <- lapply(1:k, function(j){
+      cr <- colnames(fit$wQRs.reduced[[j]]$qr)
+      cf <- colnames(fit$wQRs.full[[j]]$qr)
+      cf[!(cf %in% cr)]
+    })
+    
+    for(i in 1:(k-1)){
+      beta.check <- beta.match[[i]]
+      d.check <- beta.mat.d[[i]]
+      target <- which(rownames(d.stitched) %in% beta.check)
+      d.stitched[target, ] <- d.check[rownames(d.check) %in% beta.check,]
+    }
+  }
+  
   step <- perms + 1
   if(print.progress) {
     setTxtProgressBar(pb,step)
@@ -1173,20 +1188,27 @@ beta.iterPP <- function(fit, ind, P = NULL, RRPP = TRUE, print.progress = TRUE) 
     colnames(result) <- c("obs", paste("iter", seq(1,(perms-1),1), sep = "."))
     result
   })
-  beta.names <- lapply(1:length(beta.mats), function(j) rownames(beta.mats[[j]][[1]]))
+  
   names(beta.mats) <- names(beta.mat.d) <- trms
-  beta.hyp <- list()
-  beta.hyp[[1]] <- beta.names[[1]]
-  if(k > 1) for(i in 2:k) 
-    beta.hyp[[i]] <- beta.names[[i]][which(!beta.names[[i]]%in%beta.names[[i-1]])]
-  d.stitched <- lapply(1:k, function(j){
-    b <- beta.mat.d[[j]]
-    b <- b[match(beta.hyp[[j]], row.names(b)),]
-    if(is.matrix(b)) t(b) else b
-  })
-  d.stitched <- t(matrix(unlist(d.stitched), perms, length(beta.names[[k]])))
-  rownames(d.stitched) <- beta.names[[k]]
-  colnames(d.stitched) <- colnames(beta.mat.d[[1]])
+  
+  if(k == 1) d.stitched <- beta.mat.d[[1]]
+  
+  if(k > 1) {
+    d.stitched <- beta.mat.d[[k]]
+    
+    beta.match <- lapply(1:k, function(j){
+      cr <- colnames(fit$wQRs.reduced[[j]]$qr)
+      cf <- colnames(fit$wQRs.full[[j]]$qr)
+      cf[!(cf %in% cr)]
+    })
+    
+    for(i in 1:(k-1)){
+      beta.check <- beta.match[[i]]
+      d.check <- beta.mat.d[[i]]
+      target <- which(rownames(d.stitched) %in% beta.check)
+      d.stitched[target, ] <- d.check[rownames(d.check) %in% beta.check,]
+    }
+  }
   out <- list(random.coef = beta.mats,
               random.coef.distances = d.stitched)
   out
@@ -1316,3 +1338,461 @@ refit <- function(fit){
       out <- rrpp.fit.lm(pdf.args)
   out
 }
+
+# aov.single.model
+# performs ANOVA on a single model
+# used in anova.lm.rrpp
+aov.single.model <- function(object, ...,
+                             effect.type = c("F", "cohenf", "SS", "MS", "Rsq"),
+                             error = NULL) {
+  x <- object$ANOVA
+  df <- x$df
+  k <- length(df)-2
+  SS <- x$SS
+  MS <- x$MS    
+  perms <- object$PermInfo$perms
+  pm <- object$PermInfo$perm.method
+  
+  if(!is.null(error)) {
+    if(!inherits(error, "character")) stop("The error description is illogical.  It should be a string of character values matching ANOVA terms.")
+    kk <- length(error)
+    if(kk != k) stop("The error description should match in length the number of ANOVA terms (not including Residuals)")
+    trms <- rownames(MS)
+    MSEmatch <- match(error, trms)
+    if(any(is.na(MSEmatch))) stop("At least one of the error terms is not an ANOVA term")
+  } else MSEmatch <- NULL
+  if(length(SS) > 1) {
+    Fs <- x$Fs
+    
+    if(!is.null(MSEmatch)){
+      Fs[1:k,] <- MS[1:k,]/MS[MSEmatch,]
+      F.effect.adj <- apply(Fs[1:k,], 1, effect.size)
+    }
+    
+    effect.type <- match.arg(effect.type)
+    if(effect.type == "F") {
+      if(!is.null(error)) Z <- F.effect.adj else Z <- x$F.effect
+    }
+    
+    if(object$LM$gls) {
+      est <- "GLS"
+      
+      if(effect.type == "SS") {
+        cat("\nWarning: calculating effect size on SS is illogical with GLS.
+            Effect type has been changed to F distributions.\n\n")
+        effect.type = "F"
+      }
+      
+      if(effect.type == "MS") {
+        cat("\nWarning: calculating effect size on MS is illogical with GLS.
+            Effect type has been changed to F distributions.\n\n")
+        effect.type = "F"
+      }
+    } else est <- "OLS"
+    
+    if(effect.type == "F") Z <- Fs
+    if(effect.type == "SS") Z <- x$SS
+    if(effect.type == "MS") Z <- x$MS
+    if(effect.type == "Rsq") Z <- x$Rsq
+    if(effect.type == "cohenf") Z <- x$cohenf
+    if(effect.type == "Rsq") effect.type = "R-squared"
+    if(effect.type == "cohenf") effect.type = "Cohen's f-squared"
+    if(!is.matrix(Z)) Z <- matrix(Z, 1, length(Z))
+    Fs <- Fs[,1]
+    SS <- SS[,1]
+    MS <- MS[,1]
+    MS[length(MS)] <- NA
+    Rsq <- x$Rsq
+    cohenf <- x$cohenf
+    P.val <- apply(Z, 1, pval)
+    Z <- apply(log(Z), 1, effect.size)
+    P.val[-(1:k)] <- NA
+    Z[-(1:k)] <- NA
+    Rsq <- Rsq[,1]
+    Rsq[length(Rsq)] <- NA
+    tab <- data.frame(Df=df, SS=SS, MS = MS, Rsq = Rsq, F=Fs, Z=Z, P.val=P.val)
+    colnames(tab)[NCOL(tab)] <- paste("Pr(>", effect.type, ")", sep="")
+    class(tab) = c("anova", class(tab))
+    SS.type <- x$SS.type
+    
+    out <- list(table = tab, perm.method = pm, perm.number = perms,
+                est.method = est, SS.type = SS.type, effect.type = effect.type,
+                call = object$call)
+    
+      } else {
+        Residuals <- c(df, SS, MS)
+        names(Residuals) <- c("Df", "SS", "MS")
+        tab <- as.data.frame(Residuals)
+        class(tab) = c("anova", class(tab))
+        out <- list(table = tab, perm.method = pm, perm.number = perms,
+                    est.method = est, SS.type = NULL, effect.type = NULL,
+                    call = object$call)
+        
+      }
+  class(out) <- "anova.lm.rrpp"
+  out
+  }
+
+# aov.multi.model
+# performs ANOVA on multiple models
+# used in anova.lm.rrpp
+aov.multi.model <- function(object, lm.list,
+                            effect.type = c("F", "cohenf", "SS", "MS", "Rsq"),
+                            print.progress = TRUE) {
+  
+  effect.type <- match.arg(effect.type)
+  
+  if(inherits(object, "lm.rrpp")) refModel <- object else 
+    stop("The reference model is not a class lm.rrpp object")
+  ind <- refModel$PermInfo$perm.schedule
+  perms <- length(ind)
+  
+  X <- refModel$LM$X * sqrt(refModel$LM$weights)
+  B <- refModel$LM$coefficients
+  Y <- refModel$LM$Y
+  U <- qr.Q(qr(X))
+  n <- refModel$LM$n
+  p <- refModel$LM$p
+  if(refModel$LM$gls) {
+    P <- refModel$LM$Pcov
+    B <- refModel$LM$gls.coefficients
+    X <- crossprod(P, X)
+    Y <- crossprod(P, Y)
+    U <- qr.Q(qr(X))
+  }
+  Yh <- X %*% B
+  R <- Y - Yh
+  
+  rY <- function(ind.i) Yh + R[ind.i,]
+  
+  K <- length(lm.list)
+  Ulist <- lapply(1:K, function(j){
+    m <- lm.list[[j]]
+    X <- m$LM$X
+    w <- sqrt(m$LM$weights)
+    X <- X * w
+    if(m$LM$gls){
+      P <- m$LM$Pcov
+      X <- crossprod(P, X)
+    }
+    qr.Q(qr(X))
+  })
+  
+  if(print.progress){
+    cat(paste("\nSums of Squares calculations for", K, "models:", perms, "permutations.\n"))
+    pb <- txtProgressBar(min = 0, max = perms+5, initial = 0, style=3)
+  }
+  
+  RSS <- function(ind.i, U, Ul, K, n, p, Y) {
+    y <- as.matrix(rY(ind.i))
+    rss0  <- sum(y^2) - sum(crossprod(U, y)^2)
+    rss <- lapply(1:K, function(j){
+      u <- Ul[[j]]
+      sum(y^2) - sum(crossprod(u, y)^2)
+    })
+    RSSp <- c(rss0, unlist(rss))
+    
+    y <- as.matrix(Y[ind.i,])
+    rss <- lapply(1:K, function(j){
+      u <- Ul[[j]]
+      sum(y^2) - sum(crossprod(u, y)^2)
+    })
+    RSSy <- c(rss0, unlist(rss))
+    
+    c(RSSp, RSSy)
+  }
+  
+  rss.list <- list(ind.i = NULL, U = U, 
+                   Ul = Ulist, K = K, n = n , p = p, Y=Y)
+  
+  RSSp <- sapply(1:perms, function(j){
+    step <- j
+    if(print.progress) setTxtProgressBar(pb,step)
+    rss.list$ind.i <- ind[[j]]
+    do.call(RSS, rss.list)
+  })
+  
+  RSSy <- RSSp[-(1:(K+1)),]
+  RSSp <- RSSp[1:(K+1),]
+  
+  fit.names <- c(refModel$call[[2]], lapply(1:K, function(j) lm.list[[j]]$call[[2]]))
+  rownames(RSSp) <- rownames(RSSy) <- fit.names
+  
+  SS <- rep(RSSp[1,], each = K + 1) - RSSp
+  
+  int <- attr(refModel$LM$Terms, "intercept")
+  if(refModel$LM$gls) {
+    int <- crossprod(refModel$LM$Pcov, rep(int, n))
+  } else int <- rep(int, n)
+  
+  U0 <- qr.Q(qr(int * sqrt(refModel$LM$weights)))
+  yh0 <- fastFit(U0, Y, n, p)
+  r0 <- Y - yh0
+  SSY <- sapply(1:perms, function(j){
+    y <- yh0 + r0[ind[[j]],]
+    sum(y^2) - sum(crossprod(U0, y)^2)
+  })
+  
+  Rsq <-  1 - (RSSp / rep(SSY, each = K + 1))
+  dfe <- n - c(object$LM$wQR$rank, unlist(lapply(1:K, 
+                                                 function(j) lm.list[[j]]$LM$wQR$rank)))
+  df <- dfe[1] - dfe
+  df[1] <- 1
+  
+  MS <- SS/rep(df, perms)
+  MSE <- RSSy/rep(dfe, perms)
+  Fs <- MS/MSE
+  
+  if(effect.type == "SS") {
+    Pvals <- apply(SS, 1, pval)
+    Z <- apply(log(SS + 0.0000001), 1, effect.size)
+  } else   if(effect.type == "MS") {
+    Pvals <- apply(MS, 1, pval)
+    Z <- apply(log(MS + 0.0000001), 1, effect.size)
+  } else   if(effect.type == "Rsq") {
+    Pvals <- apply(Rsq, 1, pval)
+    Z <- apply(log(Rsq + 0.0000001), 1, effect.size)
+  } else{
+    Pvals <- apply(Fs, 1, pval)
+    Z <- apply(log(Fs + 0.0000001), 1, effect.size)
+  }
+  SS[1,] <- NA
+  MS[1,] <- NA
+  Fs[1,] <- NA
+  Pvals[1] <- NA
+  Z[1] <- NA
+  
+  RSS.obs <- RSSp[,1]
+  SS.obs <- SS[,1]
+  MS.obs <- MS[,1]
+  Rsq.obs <- Rsq[,1]
+  F.obs <- Fs[,1]
+  
+  tab <- data.frame(ResDf = dfe, DF = df, RSS = RSS.obs, SS = SS.obs, MS = MS.obs,
+                    Rsq = Rsq.obs, F = F.obs, Z = Z, P = Pvals)
+  tab$DF[1] <- NA
+  tab <-  rbind(tab, c(n-1, NA, SSY[1], NA, NA, NA, NA, NA, NA))
+  rownames(tab)[NROW(tab)] <- "Total"
+  
+  if(effect.type == "SS") p.type <- "Pr(>SS)" else
+    if(effect.type == "MS") p.type <- "Pr(>MS)" else
+      if(effect.type == "Rsq") p.type <- "Pr(>Rsq)" else
+        if(effect.type == "cohenf") p.type <- "Pr(>cohenf)" else p.type <- "Pr(>F)" 
+  names(tab)[length(names(tab))] <- p.type
+  rownames(tab)[1] <- paste(rownames(tab)[1], "(Null)")
+  class(tab) <- c("anova", class(tab))
+  
+  step <- perms + 5
+  if(print.progress) {
+    setTxtProgressBar(pb,step)
+    close(pb)
+  }
+  pm <- "RRPP"
+  if(refModel$LM$gls) est <- "GLS" else est <- "OLS"
+  
+  out <- list(table = tab, perm.method = pm, perm.number = perms,
+              est.method = est, SS.type = NULL, effect.type = effect.type,
+              call = object$call)
+  
+class(out) <- "anova.lm.rrpp"
+out
+
+}
+
+# getSlopes
+# gets the slopes for groups from a lm.rrpp fit
+# used in pairwise
+getSlopes <- function(fit, x, g){
+  k <- length(fit$LM$term.labels)
+  p <- fit$LM$p
+  beta <- fit$LM$random.coef[[k]]
+  X <- fit$LM$X
+  X <- X[, colnames(X)  %in% rownames(beta[[1]])]
+  getFitted <- function(b) X %*% b
+  fitted <- lapply(beta, getFitted)
+  Xn <- model.matrix(~ g * x + 0)
+  Q <- qr(Xn)
+  H <- tcrossprod(solve(qr.R(Q)), qr.Q(Q))
+  getCoef <- function(f) H %*% f
+  Coef <- lapply(fitted, getCoef)
+  group.slopes <- function(B){ # B of form ~ group * x + 0
+    gp <- qr(model.matrix(~g))$rank
+    gnames <- rownames(B)[1:gp]
+    B <- as.matrix(B[-(1:gp),])
+    B[2:gp, ] <- B[2:gp, ] + matrix(rep(B[1,], each = gp -1), gp -1, p)
+    rownames(B) <- gnames
+    B
+  }
+  slopes <- lapply(Coef, group.slopes)
+  rename <- function(x) {
+    dimnames(x)[[1]] <- levels(g)
+    x
+  }
+  slopes <- lapply(slopes, rename)
+  slopes
+}
+
+# getLSmeans
+# gets the LS means for groups from a lm.rrpp fit, after constaining covariates to mean values
+# used in pairwise
+getLSmeans <- function(fit, g){
+  k <- length(fit$LM$term.labels)
+  n <- fit$LM$n
+  beta <- fit$LM$random.coef[[k]]
+  dat <- fit$LM$data
+  covCheck <- sapply(dat, class)
+  for(i in 1:k) if(covCheck[i] == "numeric") dat[[i]] <- mean(dat[[i]])
+  L <- model.matrix(fit$LM$Terms, data = dat)
+  L <- L[, colnames(L)  %in% rownames(beta[[1]])]
+  getFitted <- function(b) L %*% b
+  fitted <- lapply(beta, getFitted)
+  Xn <- model.matrix(~ g + 0)
+  Q <- qr(Xn)
+  H <- tcrossprod(solve(qr.R(Q)), qr.Q(Q))
+  getCoef <- function(f) H %*% f
+  means <- lapply(fitted, getCoef)
+  rename <- function(x) {
+    dimnames(x)[[1]] <- levels(g)
+    x
+  }
+  means <- lapply(means, rename)
+  means
+}
+
+# vec.cor.matrix
+# finds vector correlations for a matrix (by rows)
+# used in pairwise
+vec.cor.matrix <- function(M) {
+  options(warn = -1)
+  M = as.matrix(M)
+  w = 1/sqrt(rowSums(M^2))
+  vc = tcrossprod(M*w)
+  options(warn = 0)
+  vc
+}
+
+# Pval.list
+# P-values across a list
+# used in pairwise
+Pval.list <- function(M){
+  pvals <- M[[1]]
+  n <- length(M)
+  for(i in 1:length(pvals)) {
+    y <- sapply(1:n, function(j) M[[j]][i])
+    pvals[i] <- pval(y)
+  }
+  diag(pvals) <- 1
+  pvals
+}
+
+# effect.list
+# effect size across a list
+# used in pairwise
+effect.list <- function(M){
+  Z <- M[[1]]
+  n <- length(M)
+  for(i in 1:length(Z)) {
+    y <- sapply(1:n, function(j) M[[j]][i])
+    Z[i] <- effect.size(y)
+  }
+  diag(Z) <- 0
+  Z
+}
+
+# percentile.list
+# find percentiles across a list
+# used in pairwise
+percentile.list <- function(M, confidence = 0.95){
+  P <- M[[1]]
+  n <- length(M)
+  for(i in 1:length(P)) {
+    y <- sapply(1:n, function(j) M[[j]][i])
+    P[i] <- quantile(y, confidence)
+  }
+  P
+}
+
+# d.summary.from.list
+# find distance statistics from a list
+# used in pairwise
+d.summary.from.list <- function(M, confidence = 0.95){
+  P <- Pval.list(M)
+  Z <- effect.list(M)
+  CL <- percentile.list(M, confidence)
+  list(D=M[[1]], P=P, Z=Z, CL=CL, confidence = confidence)
+}
+
+# d.summary.from.list
+# find vec correlation statistics from a list
+# used in pairwise
+r.summary.from.list <- function(M, confidence = 0.95){
+  options(warn = -1)
+  acos.mat <- function(x){
+    a <- acos(x)
+    diag(a) <- 1
+    a
+  }
+  A <- lapply(M, acos.mat)
+  options(warn = 0)
+  P <- Pval.list(A)
+  Z <- effect.list(A)
+  aCL <- percentile.list(A, confidence)
+  angle = A[[1]]
+  diag(angle) <- 0
+  list(r=M[[1]], angle = angle,
+       P=P, 
+       Z=Z, aCL=aCL, confidence = confidence)
+}
+
+# makePWDTable
+# arrange distance statistics into a table
+# used in pairwise
+makePWDTable <- function(L) { # List from summary.from.list
+  nms <- rownames(L$D)
+  DD <- as.dist(L$D)
+  DP <- as.dist(L$P)
+  DZ <- as.dist(L$Z)
+  DC <- as.dist(L$CL)
+  nam.com <- combn(length(nms), 2)
+  name.list <- list()
+  for(i in 1:NCOL(nam.com)) 
+    name.list[[i]]  <- paste(nms[nam.com[1,i]], nms[nam.com[2,i]], sep =":")
+  name.list <- unlist(name.list)
+  tab <- data.frame(d = as.vector(DD),
+                    UCI = as.vector(DC),
+                    Z = as.vector(DZ), 
+                    P = as.vector(DP))
+  rownames(tab) <- name.list
+  colnames(tab)[2] <- paste("UCL (", L$confidence*100,"%)", sep = "")
+  colnames(tab)[4] <- "Pr > d"
+  tab
+}
+
+# makePWCorTable
+# arrange vec cor statistics into a table
+# used in pairwise
+makePWCorTable <- function(L){
+  nms <- rownames(L$r)
+  DR <- as.dist(L$r)
+  DA <- as.dist(L$angle)
+  DP <- as.dist(L$P)
+  DaZ <- as.dist(L$Z)
+  DaC <- as.dist(L$aCL)
+  nam.com <- combn(length(nms), 2)
+  name.list <- list()
+  for(i in 1:NCOL(nam.com)) 
+    name.list[[i]]  <- paste(nms[nam.com[1,i]], nms[nam.com[2,i]], sep =":")
+  name.list <- unlist(name.list)
+  tab <- data.frame(r = as.vector(DR),
+                    angle = as.vector(DA),
+                    UCL = as.vector(DaC),
+                    Z = as.vector(DaZ),
+                    P = as.vector(DP))
+  rownames(tab) <- name.list
+  colnames(tab)[3] <- paste("UCL (", L$confidence*100,"%)", sep = "")
+  colnames(tab)[5] <- "Pr > angle"
+  tab
+
+}
+
+

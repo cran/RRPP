@@ -4,18 +4,25 @@
 \name{RRPP-package}
 \alias{RRPP-package}
 \alias{RRPP}
-\title{Linear model evaluation with Randomized Residual Permutation Procedures}
+\title{Linear Model Evaluation with Randomized Residual Permutation Procedures}
+\value{
+Key functions for this package:
+\item{\code{\link{lm.rrpp}}}{Fits linear models, using RRPP.}
+\item{\code{\link{anova.lm.rrpp}}}{ANOVA on linear models, using RRPP, plus model comparisons.}
+\item{\code{\link{coef.lm.rrpp}}}{Extract coefficients or perform test on coefficients, using RRPP.}
+\item{\code{\link{predict.lm.rrpp}}}{Predict values from lm.rrpp fits and generate boostrapped confidence intervals.}
+\item{\code{\link{pairwise}}}{Perform pairwise tests, based on lm.rrpp model fits.}
+}
 \description{
 Functions in this package allow one to evaluate linear models with residual randomization.
 The name, "RRPP", is an acronym for, "Randomization of Residuals in a Permutation Procedure."  Through
 the various functions in this package, one can use randomization of residuals to generate empirical probability
 distributions for linear model effects, for high-dimensional data or distance matrices.
-}
-\section{RRPP TOC}{
 
-RRPP-package
+An especially useful option of this package is to fit models with either ordinary or generalized
+least squares estimation (OLS or GLS, respectively), using theoretic covariance matrices.  Mixed linear
+effects can also be evaluated.
 }
-
 \author{
 Michael Collyer and Dean Adams
 }

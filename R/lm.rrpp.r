@@ -19,12 +19,16 @@
 #' and other parameters for performing ANOVA and other hypothesis tests, using
 #' empirically-derived probability distributions.
 #'
-#' \code{lm.rrpp} emphasizes estimation of effect sizes with standard deviates of observed statistics
+#' \code{lm.rrpp} emphasizes estimation of standard deviates of observed statistics as effect sizes
 #' from distributions of random outcomes.  When performing ANOVA, using the \code{\link{anova}} function,
 #' the effect type (statistic choice) can be varied.  See \code{\link{anova.lm.rrpp}} for more details.  Please
 #' recognize that the type of SS must be chosen prior to running \code{lm.rrpp} and not when applying \code{\link{anova}}
 #' to the \code{lm.rrpp} fit, as design matrices for the linear model must be created first.  Therefore, SS.type
 #' is an argument for \code{lm.rrpp} and effect.type is an argument for \code{\link{anova.lm.rrpp}}.
+#' 
+#' The \code{\link{coef.lm.rrpp}} function can be used to test the specific coefficients of an lm.rrpp fit.  The test
+#' statistics are the distances (d), which are also standardized (Z-scores).  The Z-scores might be easier to compare,
+#' as the expected values for random distances can vary among coefficient vectors (Adams and Collyer 2016).
 #'
 #' @param f1 A formula for the linear model (e.g., y~x1+x2).  Can also be a linear model fit
 #' from \code{\link{lm}}.
@@ -55,7 +59,8 @@
 #' @return An object of class \code{lm.rrpp} is a list containing the following
 #' \item{call}{The matched call.}
 #' \item{LM}{Linear Model objects, including data (Y), coefficients, design matrix (X), sample size
-#' (n), number of dependent variables (p), QR decomposition of the design matrix, fitted values, residuals,
+#' (n), number of dependent variables (p), dimension of data space (p.prime),
+#' QR decomposition of the design matrix, fitted values, residuals,
 #' weights, offset, model terms, model frame (data), random coefficients (through permutations),
 #' random vector distances for coefficients (through permutations), and whether OLS or GLS was performed}
 #' \item{ANOVA}{Analysis of variance objects, including the SS type, random SS outcomes, random MS outcomes,
@@ -73,6 +78,8 @@
 #' by high-dimensional data. Heredity. 115:357-365.
 #' @references Adams, D.C. and M.L. Collyer. 2016.  On the comparison of the strength of morphological integration across morphometric
 #' datasets. Evolution. 70:2623-2631.
+#' @references Adams, D.C and M.L. Collyer. 2018. Multivariate phylogenetic anova: group-clade aggregation, biological 
+#' challenges, and a refined permutation procedure. Evolution. In press.
 #' @seealso \code{procD.lm} and \code{procD.pgls} within \code{geomorph}; \code{\link[stats]{lm}} for more on linear model fits.
 #' @examples
 #' 
@@ -254,12 +261,12 @@ lm.rrpp <- function(f1, iter = 999, seed = NULL, int.first = FALSE,
     setTxtProgressBar(pb,step)
   }
   dimsY <- dim(as.matrix(fit.o$Y))
-  n <- dimsY[1]; p <- dimsY[2]
+  n <- dimsY[1]; p <- p.prime <- dimsY[2]
   if(p > n){
     fit <- rrpp.fit(f1, data = data, keep.order = ko, pca = TRUE, SS.type = SS.type, ...)
     Y <- as.matrix(fit$Y)
     dimsY <- dim(Y)
-    n <- dimsY[1]; p <- dimsY[2]
+    n <- dimsY[1]; p.prime <- dimsY[2]
   } else {
     fit <- fit.o
     Y <- as.matrix(fit$Y)
@@ -279,6 +286,8 @@ lm.rrpp <- function(f1, iter = 999, seed = NULL, int.first = FALSE,
   }
   SS.args <- list(fit = fit, ind = ind, P = NULL,
                   RRPP = RRPP, print.progress = print.progress)
+  beta.args <- SS.args
+  beta.args$fit <- fit.o
   if(!is.null(Cov)){
     Cov.name <- deparse(substitute(Cov))
     Cov.match <- match(Cov.name, names(data))
@@ -293,16 +302,16 @@ lm.rrpp <- function(f1, iter = 999, seed = NULL, int.first = FALSE,
   } else Pcov <- NULL 
   if(k > 0){
     if(Parallel) {
-      if(.Platform$OS.type == "windows") betas <- do.call(beta.iter, SS.args)
-      else betas <- do.call(beta.iterPP, SS.args)
-    } else betas <- do.call(beta.iter, SS.args)
+      if(.Platform$OS.type == "windows") betas <- do.call(beta.iter, beta.args)
+      else betas <- do.call(beta.iterPP, beta.args)
+    } else betas <- do.call(beta.iter, beta.args)
     if(Parallel) {
       if(.Platform$OS.type == "windows") SS <- do.call(SS.iter, SS.args)
       else SS <- do.call(SS.iterPP, SS.args)
       } else SS <- do.call(SS.iter, SS.args)
     ANOVA <- anova.parts(fit, SS)
     LM <- list(coefficients = fit.o$wCoefficients.full[[k]],
-               Y = fit.o$Y,  X = fit.o$X, n = n, p = p,
+               Y = fit.o$Y,  X = fit.o$X, n = n, p = p, p.prime = p.prime,
                QR = fit.o$QRs.full[[k]],
                fitted = fit.o$fitted.full[[k]],
                residuals = fit.o$residuals.full[[k]],
@@ -346,7 +355,7 @@ lm.rrpp <- function(f1, iter = 999, seed = NULL, int.first = FALSE,
     SSY <- SS[1]
     df <- n - fit$wQRs.full[[1]]$rank
     LM <- list(coefficients=fit$wCoefficients.full[[1]],
-               Y=fit$Y,  X=fit$X, n = n, p = p,
+               Y=fit$Y,  X=fit$X, n = n, p = p, p = p.prime,
                QR = fit.o$QRs.full[[1]], fitted = fit$fitted.full[[1]],
                residuals = fit$residuals.full[[1]],
                weights = fit$weights, offset = fit$offset,

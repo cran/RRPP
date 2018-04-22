@@ -12,8 +12,8 @@
 \item{test}{Logical argument that if TRUE, performs hypothesis tests (Null hypothesis is vector distance = 0)
 for the observed coefficients.  If FALSE, only the observed coefficients are returned.}
 
-\item{confidence}{The desired confidence interval level to print with a table of summary statistics,
-if test = TRUE.}
+\item{confidence}{The desired confidence limit to print with a table of summary statistics,
+if test = TRUE.  Because distances are directionless, confidence limits are one-tailed.}
 
 \item{...}{Other arguments (currently none)}
 }
@@ -26,6 +26,10 @@ in location in the data space associated with a one unit change in the model des
 described.  Random coefficients are based on either RRPP or FRPP, as defined by the 
 \code{\link{lm.rrpp}} model fit.  If RRPP is used, all distributions of coefficient vector distances are 
 based on appropriate null models as defined by SS type.
+
+This function can be used to test the specific coefficients of an lm.rrpp fit.  The test
+statistics are the distances (d), which are also standardized (Z-scores).  The Z-scores might be easier to compare,
+as the expected values for random distances can vary among coefficient vectors (Adams and Collyer 2016).
 }
 \examples{
 # See examples for lm.rrpp to see how anova.lm.rrpp works in conjunction
@@ -38,7 +42,7 @@ Pupfish$logSize <- log(Pupfish$CS) # better to not have functions in formulas
 fit <- lm.rrpp(coords ~ logSize + Sex*Pop, SS.type = "I", data = Pupfish) 
 
 coef(fit)
-coef(fit, confidence = 0.99)
+coef(fit, test = TRUE, confidence = 0.99)
 }
 \author{
 Michael Collyer

@@ -47,7 +47,8 @@ platforms will automatically default to a single-core application of this functi
 An object of class \code{lm.rrpp} is a list containing the following
 \item{call}{The matched call.}
 \item{LM}{Linear Model objects, including data (Y), coefficients, design matrix (X), sample size
-(n), number of dependent variables (p), QR decomposition of the design matrix, fitted values, residuals,
+(n), number of dependent variables (p), dimension of data space (p.prime),
+QR decomposition of the design matrix, fitted values, residuals,
 weights, offset, model terms, model frame (data), random coefficients (through permutations),
 random vector distances for coefficients (through permutations), and whether OLS or GLS was performed}
 \item{ANOVA}{Analysis of variance objects, including the SS type, random SS outcomes, random MS outcomes,
@@ -79,12 +80,16 @@ results (coefficients, fitted values, residuals, etc.), random sums of squares (
 and other parameters for performing ANOVA and other hypothesis tests, using
 empirically-derived probability distributions.
 
-\code{lm.rrpp} emphasizes estimation of effect sizes with standard deviates of observed statistics
+\code{lm.rrpp} emphasizes estimation of standard deviates of observed statistics as effect sizes
 from distributions of random outcomes.  When performing ANOVA, using the \code{\link{anova}} function,
 the effect type (statistic choice) can be varied.  See \code{\link{anova.lm.rrpp}} for more details.  Please
 recognize that the type of SS must be chosen prior to running \code{lm.rrpp} and not when applying \code{\link{anova}}
 to the \code{lm.rrpp} fit, as design matrices for the linear model must be created first.  Therefore, SS.type
 is an argument for \code{lm.rrpp} and effect.type is an argument for \code{\link{anova.lm.rrpp}}.
+
+The \code{\link{coef.lm.rrpp}} function can be used to test the specific coefficients of an lm.rrpp fit.  The test
+statistics are the distances (d), which are also standardized (Z-scores).  The Z-scores might be easier to compare,
+as the expected values for random distances can vary among coefficient vectors (Adams and Collyer 2016).
 }
 \examples{
 
@@ -246,6 +251,9 @@ by high-dimensional data. Heredity. 115:357-365.
 
 Adams, D.C. and M.L. Collyer. 2016.  On the comparison of the strength of morphological integration across morphometric
 datasets. Evolution. 70:2623-2631.
+
+Adams, D.C and M.L. Collyer. 2018. Multivariate phylogenetic anova: group-clade aggregation, biological 
+challenges, and a refined permutation procedure. Evolution. In press.
 }
 \seealso{
 \code{procD.lm} and \code{procD.pgls} within \code{geomorph}; \code{\link[stats]{lm}} for more on linear model fits.
