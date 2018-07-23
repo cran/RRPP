@@ -22,7 +22,10 @@
 #' confidence for the test.  Confidence limits are inherently one-tailed as
 #' the statistics are similar to absolute values.  For example, a distance is analogous to an absolute difference.  Therefore,
 #' the one-tailed confidence limits are more akin to two-tailed hypothesis tests.  (A comparable example is to use the absolute 
-#' value of a t-statistic, in which case the distribution has a lower bound of 0.)
+#' value of a t-statistic, in which case the distribution has a lower bound of 0.)  If rather than comparing the LS means or slopes,
+#' one wishes to compare the dispersion of residuals among groups, given the model, an option for comparing variances is also
+#' available.  Variance degrees of freedom equal n, the group size, rather than n-1, as the purpose is to compare mean dispersion 
+#' in the sample.  (Additionally, tests with one subject in a group are possible, or at least not a hindrance to the analysis.)
 #' 
 #' If data are univariate, test.type = 'cor' should not be chosen because the vector correlation between univariate 
 #' vectors is always 1.  Rather, cor.type = 'dist' will return the absolute difference between slopes or between means.  
@@ -82,7 +85,7 @@
 #' 
 #' Pupfish$Y <- prcomp(Pupfish$coords)$x[, 1:3]
 #' 
-#' # Pairwise comparisons of LS means
+#' ## Pairwise comparisons of LS means
 #' 
 #' fit1 <- lm.rrpp(Y ~ logSize + Sex * Pop, SS.type = "I", 
 #' data = Pupfish, print.progress = FALSE, iter = 999) 
@@ -97,8 +100,12 @@
 #' summary(PW1, confidence = 0.95, test.type = "dist", stat.table = FALSE)
 #' summary(PW1, confidence = 0.95, test.type = "VC", 
 #'    angle.type = "deg") # correlation between mean vectors (angles in degrees)
+#'
+#' # Can also compare the dispersion around means
 #' 
-#' # Pairwise comparisons of slopes
+#' summary(PW1, confidence = 0.95, test.type = "var")
+#' 
+#' ## Pairwise comparisons of slopes
 #' 
 #' fit2 <- lm.rrpp(Y ~ logSize * Sex * Pop, SS.type = "I", 
 #' data = Pupfish, print.progress = FALSE, iter = 999) 
@@ -113,12 +120,17 @@
 #' summary(PW2, confidence = 0.95, test.type = "dist", stat.table = FALSE)
 #' summary(PW2, confidence = 0.95, test.type = "VC",
 #'    angle.type = "deg") # correlation between slope vectors (and angles)
-
+#'    
+#' # Can also compare the dispersion around group slopes
+#' 
+#' summary(PW2, confidence = 0.95, test.type = "var")
+#' 
 pairwise <- function(fit, fit.null = NULL, groups, covariate = NULL, 
                       print.progress = FALSE) {
   fitf <- fit
   ind <- fit$PermInfo$perm.schedule
   perms <- length(ind)
+  gls <- fit$LM$gls
   if(!inherits(fit, "lm.rrpp")) stop("The model fit must be a lm.rrpp class object")
   
   if(!is.null(fit.null)) {
@@ -210,10 +222,27 @@ pairwise <- function(fit, fit.null = NULL, groups, covariate = NULL,
     slopes.dist <- lapply(slopes.length, function(x) as.matrix(dist(as.matrix(x))))
     slopes.vec.cor <- lapply(slopes, vec.cor.matrix)
   }
+  
+  if(gls) res <- fitf$LM$gls.residuals else res <- fitf$LM$wResiduals
+  disp.args <- list(res = as.matrix(res), ind.i = NULL, x = model.matrix(~groups + 0))
+  g.disp <- function(res, ind.i, x) {
+    r <- res[ind.i,]
+    if(NCOL(r) > 1) d <- apply(r, 1, function(x) sum(x^2)) else
+      d <- r^2
+    coef(lm.fit(x, d))
+  }
+
+  vars <- sapply(1:perms, function(j){
+    disp.args$ind.i <- ind[[j]]
+    do.call(g.disp, disp.args)
+  })
+  
+  rownames(vars) <- levels(groups)
+  colnames(vars) <- c("obs", paste("iter", 1:(perms -1), sep = "."))
 
   out <- list(LS.means = means, slopes = slopes, means.dist = means.dist, means.vec.cor = means.vec.cor,
               slopes.length = slopes.length, slopes.dist = slopes.dist, slopes.vec.cor = slopes.vec.cor,
-              n <- fit$LM$n, p = fit$LM$p, PermInfo = fitf$PermInfo)
+              vars = vars, n <- fit$LM$n, p = fit$LM$p, PermInfo = fitf$PermInfo)
   
   class(out) <- "pairwise"
   out

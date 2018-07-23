@@ -57,8 +57,8 @@ summary.lm.rrpp <- function(object, formula = TRUE, ...){
     dfe <- df[k+1]
     dfM <- sum(df[1:k])
     Fs <- (SSM/dfM)/(SSE/dfe)
-    P <- pval(log(Fs))
-    Z <- effect.size(Fs)
+    P <- pval(Fs)
+    Z <- effect.size(log(Fs))
     Rsq <- SSM[1]/SST[1]
     SSM.obs <- SSM[1]
     Fs.obs <- Fs[1]
@@ -81,8 +81,75 @@ summary.lm.rrpp <- function(object, formula = TRUE, ...){
                           "F",
                           "Z (from F)",
                           "Pr(>F)")
-  if(formula) dimnames(tab)[[1]] <- deparse(x$call[[2]]) else
+  if(formula) dimnames(tab)[[1]] <- deparse(x$call$f1[[3]]) else
     dimnames(tab)[[1]] <- deparse(substitute(object))
+  
+  pca.fitted <- prcomp(x$LM$wFitted)
+  pca.residuals <- prcomp(x$LM$wResiduals)
+  pca.total <- prcomp(x$LM$Y)
+  
+  if(x$LM$gls) {
+    Pcov <- x$LM$Pcov
+    PY <- crossprod(Pcov, x$LM$Y * sqrt(x$LM$weights))
+    PX <- as.matrix(crossprod(Pcov, x$LM$X * sqrt(x$LM$weights)))
+    Uf <- qr.Q(qr(PX))
+    int <- attr(x$LM$Terms, "intercept")
+    Pint <- as.matrix(crossprod(Pcov, rep(int, n)))
+    Un <- qr.Q(qr(Pint))
+    glsfitted <- fastFit(Uf, PY, n, p)
+    glsmeans <- fastFit(Un, PY, n, p)
+    
+    Sf <- crossprod(glsfitted) - crossprod(glsmeans)
+    Sr <- crossprod((PY - glsfitted))
+    Sy <- crossprod(PY) - crossprod(glsmeans)
+    
+    Cf <- Sf/(n - 1)
+    Cr <- Sr/(n - 1)
+    Cy <- Sy/(n - 1)
+    
+    pca.fitted <- pca.residuals <- pca.total <- list()
+    
+    svd.Y <- svd(Cy)
+    keep <- which(zapsmall(svd.Y$d) > 0)
+    pca.total$sdev <- sqrt(svd.Y$d[keep])
+    pca.total$rotation <- as.matrix(svd.Y$v[, keep])
+    pca.total$x <- (PY - glsmeans) %*% as.matrix(svd.Y$v[, keep])
+    
+    svd.f <- svd(Cf)
+    keep <- which(zapsmall(svd.f$d) > 0)
+    pca.fitted$sdev <- sqrt(svd.f$d[keep])
+    pca.fitted$rotation <- as.matrix(svd.f$v[, keep])
+    pca.fitted$x <- glsfitted %*% as.matrix(svd.f$v[, keep])
+    
+    svd.r <- svd(Cr)
+    keep <- which(zapsmall(svd.r$d) > 0)
+    pca.residuals$sdev <- sqrt(svd.r$d[keep])
+    pca.residuals$rotation <- as.matrix(svd.r$v[, keep])
+    pca.residuals$x <- (PY - glsfitted) %*% as.matrix(svd.r$v[, keep])
+
+  }
+  
+  d.f <- pca.fitted$sdev^2
+  d.r <- pca.residuals$sdev^2
+  d.t <- pca.total$sdev^2
+  
+  rank.f <- length(which(zapsmall(d.f) > 0))
+  rank.r <- length(which(zapsmall(d.r) > 0))
+  rank.t <- length(which(zapsmall(d.t) > 0))
+  
+  Trace <- c(sum(d.f), sum(d.r), sum(d.t))
+  Proportion <- Trace/sum(d.t)
+  Rank <- c(rank.f, rank.r, rank.t)
+  
+  redund <- data.frame(Trace, Proportion, Rank)
+  rownames(redund) <- c("Fitted", "Residuals", "Total")
+  eigs.f <- eigs.r <- eigs.t <- rep(NA, rank.t)
+  eigs.f[1:rank.f] <- d.f[1:rank.f]
+  eigs.r[1:rank.r] <- d.r[1:rank.r]
+  eigs.t[1:rank.t] <- d.t[1:rank.t]
+  eigs <- as.table(rbind(eigs.f, eigs.r, eigs.t))
+  rownames(eigs) <- c("Fitted", "Residuals", "Total")
+  colnames(eigs) <- paste("PC", 1:rank.t, sep="")
 
   rfit <-refit(x)
   RR <- rfit$wResiduals.reduced
@@ -91,7 +158,8 @@ summary.lm.rrpp <- function(object, formula = TRUE, ...){
   names(SSCP) <- LM$term.labels
   SSCP <- c(SSCP, list(Residuals = as.matrix(crossprod(RF[[length(RF)]]))))
   out <- list(table = tab, SSCP = SSCP, n = n, p = p, p.prime = p.prime, k = k, 
-              perms = perms, dv = dv, SS = SS, SS.type = SS.type)
+              perms = perms, dv = dv, SS = SS, SS.type = SS.type, redundancy = redund,
+              eigenvalues = eigs, gls = x$LM$gls)
   class(out) <- "summary.lm.rrpp"
   out
 }
@@ -115,6 +183,14 @@ print.summary.lm.rrpp <- function(x, ...) {
   cat(paste("\nNumber of permutations:", x$perms))
   cat("\n\nFull Model Analysis of Variance\n\n")
   print(x$table)
+  cat("\n\nRedundancy Analysis (PCA on fitted values and residuals)\n\n")
+  if(x$gls) {
+    cat("nGLS mean used rather than center of gravity.  Projection is not orthogonal.\n\n")
+  }
+  print(x$redundancy)
+  cat("\nEigenvalues\n\n")
+  print(x$eigenvalues)
+  cat("\n")
   invisible(x)
 }
 ## coef.lm.rrpp
@@ -303,7 +379,7 @@ plot.lm.rrpp <- function(x, type = c("diagnostics", "regression",
   type <- match.arg(type)
   if(is.na(match(type, c("diagnostics", "regression", "PC")))) 
     type <- "diagnostics"
-  CRC <- PL <- Reg.proj <- NULL
+  CRC <- PL <- Reg.proj <- PC.points <- NULL
   if(type == "diagnostics") {
     pca.r <- prcomp(r)
     var.r <- round(pca.r$sdev^2/sum(pca.r$sdev^2)*100,2)
@@ -395,8 +471,10 @@ plot.lm.rrpp <- function(x, type = c("diagnostics", "regression",
          xlab = paste("PC 1 for fitted values: ",ev[1],"%", sep = ""),
          ylab = paste("PC 2 for fitted values: ",ev[2],"%", sep = ""),
                       ...)
+    PC.points <- P
+    rownames(P) <- rownames(x$LM$data)
   }
-  out <- list(CRC = CRC, PredLine = PL, RegScore = Reg.proj)
+  out <- list(CRC = CRC, PredLine = PL, RegScore = Reg.proj, PC.points = PC.points)
   invisible(out)
 }
 
@@ -441,7 +519,7 @@ plot.QQ <- function(r){
 
 #' Plot Function for RRPP
 #' 
-#' @param x plot object (from \code{\link{lm.rrpp}})
+#' @param x plot object (from \code{\link{predict.lm.rrpp}})
 #' @param PC A logical argument for whether the data space should be rotated to its 
 #' principal components
 #' @param ellipse A logical argument to change error bars to ellipses in multivariate plots.  
@@ -676,7 +754,8 @@ print.pairwise <- function(x, ...){
 #' @param object Object from \code{\link{pairwise}}
 #' @param stat.table Logical argument for whether results should be returned in one table 
 #' (if TRUE) or separate pairwise tables (if FALSE)
-#' @param test.type Whether distances or vector correlations between vectors should be used.
+#' @param test.type Whether distances or vector correlations between vectors or variances (dispersion of residuals)
+#' should be used in the test.
 #' @param angle.type If test.type = "VC", whether angle results are expressed in radians or degrees.
 #' @param confidence Confidence level to use for upper confidence limit; default = 0.95 (alpha = 0.05)
 #' @param show.vectors Logical value to indicate whether vectors should be printed.
@@ -685,17 +764,45 @@ print.pairwise <- function(x, ...){
 #' @author Michael Collyer
 #' @keywords utilities
 summary.pairwise <- function(object, stat.table = TRUE, 
-                             test.type = c("dist", "VC"),
+                             test.type = c("dist", "VC", "var"),
                              angle.type = c("rad", "deg"),
                              confidence = 0.95, show.vectors = FALSE, ...){
   test.type <- match.arg(test.type)
   angle.type <- match.arg(angle.type)
   x <- object
-  if(is.null(x$LS.means)) type = "slopes"
-  if(is.null(x$slopes)) type = "means"
+  if(test.type != "var") {
+    if(is.null(x$LS.means)) type = "slopes"
+    if(is.null(x$slopes)) type = "means"
+  } else type <- "var"
  
   print.pairwise(x)
   cat("\n")
+  
+  vars <- object$vars
+  if(type == "var") {
+    var.diff <- lapply(1:NCOL(vars), function(j){
+      v <- as.matrix(vars[,j])
+      as.matrix(dist(v))
+    })
+    L <- d.summary.from.list(var.diff)
+    cat("\nObserved variances by group\n\n")
+    print(vars[,1])
+    
+    if(stat.table) {
+      tab <- makePWDTable(L)
+      cat("\nPairwise distances between variances, plus statistics\n")
+      print(tab)
+    } else {
+      cat("\nPairwise distances between variances\n")
+      print(L$D)
+      cat("\nPairwise", paste(L$confidence*100, "%", sep=""), "upper confidence limits between variances\n")
+      print(L$CL)
+      cat("\nPairwise effect sizes (Z) between variances\n")
+      print(L$Z)
+      cat("\nPairwise P-values between variances\n")
+      print(L$P)
+    }
+  }
   
   if(type == "means") {
     cat("LS means:\n")
@@ -796,3 +903,107 @@ summary.pairwise <- function(object, stat.table = TRUE,
   }
 }
 
+#' Print/Summary Function for RRPP
+#'
+#' @param x Object from \code{\link{classify}}
+#' @param ... Other arguments passed onto classify
+#' @export
+#' @author Michael Collyer
+#' @keywords utilities
+print.classify <- function(x ,...){
+  cat("\nGroups and group sizes\n")
+  print(x$group.n)
+  cat("\nPC means\n")
+  print(x$means)
+  cat("\nClassification for", length(x$class), "observations\n")
+  cat("\nUse summary() to produce a table of posterior classification probabilities\n")
+}
+
+#' Print/Summary Function for RRPP
+#'
+#' @param object Object from \code{\link{classify}}
+#' @param ... Other arguments passed onto classify
+#' @export
+#' @author Michael Collyer
+#' @keywords utilities
+summary.classify <- function(object ,...){
+  x <- object
+  cat("\nGroups and group sizes\n")
+  print(x$group.n)
+  cat("\nPC means\n")
+  print(x$means)
+  cat("\nClassification for", length(x$class), "observations\n")
+  cat("\nGeneralized (Mahalanobis) squared distances\n")
+  print(x$Mah.dist.sq)
+  cat("\nPrior probabilities\n")
+  print(x$prior)
+  cat("\nPosterior proabilities\n")
+  print(x$posterior)
+  cat("\n")
+}
+
+#' Print/Summary Function for RRPP
+#'
+#' @param x Object from \code{\link{model.comparison}}
+#' @param ... Other arguments passed onto model.comparison
+#' @export
+#' @author Michael Collyer
+#' @keywords utilities
+print.model.comparison <- function(x ,...){
+  print(x$table)
+}
+
+#' Print/Summary Function for RRPP
+#'
+#' @param object Object from \code{\link{model.comparison}}
+#' @param ... Other arguments passed onto model.comparison
+#' @export
+#' @author Michael Collyer
+#' @keywords utilities
+summary.model.comparison <- function(object ,...){
+  x <- object
+  type <- colnames(x$table)[[1]]
+  if(type == "cov.trace") type.name <- "traces of model covariance matrices"
+  if(type == "logLik") type.name <- "model log-likelihoods"
+  n <- NROW(x$table)
+  cat("\n\n Summary statistics for", type.name, "\n\n")
+  cat(n, "Models compared.\n\n")
+  tab <- x$table
+  rownames(tab) <- x$names
+  print(tab)
+}
+
+#' Plot Function for RRPP
+#' 
+#' @param x plot object (from \code{\link{model.comparison}})
+#' @param ... other arguments passed to plot (helpful to employ
+#' different colors or symbols for different groups).  See
+#' \code{\link{plot.default}} and \code{\link{par}}
+#' @export
+#' @author Michael Collyer
+#' @keywords utilities
+#' @keywords visualization
+plot.model.comparison <- function(x, ...){
+  type <- colnames(x$table)[[1]]
+  if(type == "cov.trace") type.name <- "Trace"
+  if(type == "logLik") type.name <- "-2 * log-likelihood"
+  tab <- x$table
+  nms <- x$names
+  x <- tab[,2]
+  y <- tab[,1]
+  if(type == "logLik") y <- -2 * y
+  xrange <- range(x)
+  dx <- xrange[2] - xrange[1]
+  xlim <- xrange + c(-0.1*dx, 0.1*dx)
+  
+  yrange <- range(y)
+  dy <- yrange[2] - yrange[1]
+  ylim <- yrange + c(-0.1*dy, 0.1*dy)
+  
+  plot(x, y, xlab = "Parameter penalty", 
+       ylab = type.name, xlim = xlim, ylim = ylim, ...)
+  
+  f <- lm(y ~ x)
+  abline(f, lty = 3, lwd = 0.8, col = "red")
+  text(x, y, nms, pos = 1, cex = 0.4)
+}

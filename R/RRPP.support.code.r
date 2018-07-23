@@ -666,8 +666,8 @@ rrpp <- function(fitted, residuals, ind.i, w, o){
 # used in lm.rrpp
 
 Cov.proj <- function(Cov, id){
-  if(is.null(id)) id <- 1:NCOL(Cov)
-  Cov <- Cov[id, id]
+  if(is.null(id)) Cov <- Cov else
+    Cov <- Cov[id, id]
   invC <- fast.solve(Cov)
   eigC <- eigen(Cov)
   lambda <- zapsmall(eigC$values)
@@ -726,6 +726,8 @@ SS.iter <- function(fit, ind, P = NULL, RRPP = TRUE, print.progress = TRUE) {
     Ufull <- Uf[[k]]
     int <- attr(fit$Terms, "intercept")
     Unull <- qr.Q(qr(crossprod(P, rep(int, n))))
+    yh0 <- fastFit(Unull, Y, n, p)
+    r0 <- Y - yh0
     if(!RRPP) {
       fitted <- lapply(fitted, function(.) matrix(0, n, p))
       res <- lapply(res, function(.) Y)
@@ -741,7 +743,7 @@ SS.iter <- function(fit, ind, P = NULL, RRPP = TRUE, print.progress = TRUE) {
       x <-ind[[j]]
       rrpp.args$ind.i <- x
       Yi <- do.call(rrpp, rrpp.args)
-      y <- Yi[[1]]
+      y <- yh0 + r0[x,]
       yy <- sum(y^2)
       c(Map(function(y, ur, uf) sum(crossprod(uf,y)^2) - sum(crossprod(ur,y)^2),
             Yi, Ur, Uf),
@@ -759,13 +761,15 @@ SS.iter <- function(fit, ind, P = NULL, RRPP = TRUE, print.progress = TRUE) {
     Ufull <- Uf[[k]]
     int <- attr(fit$Terms, "intercept")
     Unull <- qr.Q(qr(rep(int, n)))
+    yh0 <- fastFit(Unull, Y, n, p)
+    r0 <- Y - yh0
     SS <- lapply(1: perms, function(j){
       step <- j
       if(print.progress) setTxtProgressBar(pb,step)
       x <-ind[[j]]
       rrpp.args$ind.i <- x
       Yi <- do.call(rrpp, rrpp.args)
-      y <- Yi[[1]]
+      y <- yh0 + r0[x,]
       yy <- sum(y^2)
       c(Map(function(y, ur, uf) sum(crossprod(uf,y)^2) - sum(crossprod(ur,y)^2),
             Yi, Ur, Uf),
@@ -1349,7 +1353,7 @@ aov.single.model <- function(object, ...,
   df <- x$df
   k <- length(df)-2
   SS <- x$SS
-  MS <- x$MS    
+  MS <- x$MS 
   perms <- object$PermInfo$perms
   pm <- object$PermInfo$perm.method
   
@@ -1361,7 +1365,7 @@ aov.single.model <- function(object, ...,
     MSEmatch <- match(error, trms)
     if(any(is.na(MSEmatch))) stop("At least one of the error terms is not an ANOVA term")
   } else MSEmatch <- NULL
-  if(length(SS) > 1) {
+  if(NROW(SS) > 1) {
     Fs <- x$Fs
     
     if(!is.null(MSEmatch)){
@@ -1397,20 +1401,23 @@ aov.single.model <- function(object, ...,
     if(effect.type == "cohenf") Z <- x$cohenf
     if(effect.type == "Rsq") effect.type = "R-squared"
     if(effect.type == "cohenf") effect.type = "Cohen's f-squared"
-    if(!is.matrix(Z)) Z <- matrix(Z, 1, length(Z))
     Fs <- Fs[,1]
     SS <- SS[,1]
     MS <- MS[,1]
     MS[length(MS)] <- NA
     Rsq <- x$Rsq
     cohenf <- x$cohenf
-    P.val <- apply(Z, 1, pval)
-    Z <- apply(log(Z), 1, effect.size)
-    P.val[-(1:k)] <- NA
-    Z[-(1:k)] <- NA
-    Rsq <- Rsq[,1]
-    Rsq[length(Rsq)] <- NA
-    tab <- data.frame(Df=df, SS=SS, MS = MS, Rsq = Rsq, F=Fs, Z=Z, P.val=P.val)
+    if(!is.null(Z)) {
+      if(!is.matrix(Z)) Z <- matrix(Z, 1, length(Z))
+      P.val <- apply(Z, 1, pval) 
+      Z <- apply(log(Z), 1, effect.size)
+      P.val[-(1:k)] <- NA
+      Z[-(1:k)] <- NA
+      Rsq <- Rsq[,1]
+      Rsq[length(Rsq)] <- NA
+      } else P.val <- NULL
+
+    tab <- data.frame(Df=df, SS=SS, MS = MS, Rsq = Rsq, F = Fs, Z = Z, P.val = P.val)
     colnames(tab)[NCOL(tab)] <- paste("Pr(>", effect.type, ")", sep="")
     class(tab) = c("anova", class(tab))
     SS.type <- x$SS.type
@@ -1420,10 +1427,10 @@ aov.single.model <- function(object, ...,
                 call = object$call)
     
       } else {
-        Residuals <- c(df, SS, MS)
-        names(Residuals) <- c("Df", "SS", "MS")
-        tab <- as.data.frame(Residuals)
+        tab <- data.frame(df = df, SS = SS[[1]], MS = MS[[1]])
+        rownames(tab) <- c("Residuals")
         class(tab) = c("anova", class(tab))
+        if(object$LM$gls) est <-"GLS" else est <- "OLS"
         out <- list(table = tab, perm.method = pm, perm.number = perms,
                     est.method = est, SS.type = NULL, effect.type = NULL,
                     call = object$call)
@@ -1447,23 +1454,21 @@ aov.multi.model <- function(object, lm.list,
   ind <- refModel$PermInfo$perm.schedule
   perms <- length(ind)
   
-  X <- refModel$LM$X * sqrt(refModel$LM$weights)
+  X <- as.matrix(refModel$LM$X * sqrt(refModel$LM$weights))
   B <- refModel$LM$coefficients
   Y <- refModel$LM$Y
-  U <- qr.Q(qr(X))
+  U <- as.matrix(qr.Q(qr(X)))
   n <- refModel$LM$n
   p <- refModel$LM$p
   if(refModel$LM$gls) {
     P <- refModel$LM$Pcov
     B <- refModel$LM$gls.coefficients
-    X <- crossprod(P, X)
+    X <- as.matrix(crossprod(P, X))
     Y <- crossprod(P, Y)
-    U <- qr.Q(qr(X))
+    U <- as.matrix(qr.Q(qr(X)))
   }
-  Yh <- X %*% B
-  R <- Y - Yh
-  
-  rY <- function(ind.i) Yh + R[ind.i,]
+  Yh <- as.matrix(fastFit(U, Y, n, p))
+  R <- as.matrix(Y) - Yh
   
   K <- length(lm.list)
   Ulist <- lapply(1:K, function(j){
@@ -1482,18 +1487,31 @@ aov.multi.model <- function(object, lm.list,
     cat(paste("\nSums of Squares calculations for", K, "models:", perms, "permutations.\n"))
     pb <- txtProgressBar(min = 0, max = perms+5, initial = 0, style=3)
   }
+
+  int <- attr(refModel$LM$Terms, "intercept")
+  if(refModel$LM$gls) {
+    int <- crossprod(refModel$LM$Pcov, rep(int, n))
+  } else int <- rep(int, n)
   
-  RSS <- function(ind.i, U, Ul, K, n, p, Y) {
+  U0 <- as.matrix(qr.Q(qr(int * sqrt(refModel$LM$weights))))
+  yh0 <- as.matrix(fastFit(U0, Y, n, p))
+  r0 <- as.matrix(Y) - yh0
+  
+  rY <- function(ind.i) Yh + R[ind.i,]
+  rY0 <- function(ind.i) yh0 + r0[ind.i,]
+  
+  RSS <- function(ind.i, U, Ul, K, n, p, Y, yh0, r0) {
     y <- as.matrix(rY(ind.i))
     rss0  <- sum(y^2) - sum(crossprod(U, y)^2)
     rss <- lapply(1:K, function(j){
       u <- Ul[[j]]
       sum(y^2) - sum(crossprod(u, y)^2)
     })
+    
     RSSp <- c(rss0, unlist(rss))
     
-    y <- as.matrix(Y[ind.i,])
     rss <- lapply(1:K, function(j){
+      y <- as.matrix(rY0(ind.i))
       u <- Ul[[j]]
       sum(y^2) - sum(crossprod(u, y)^2)
     })
@@ -1503,7 +1521,8 @@ aov.multi.model <- function(object, lm.list,
   }
   
   rss.list <- list(ind.i = NULL, U = U, 
-                   Ul = Ulist, K = K, n = n , p = p, Y=Y)
+                   Ul = Ulist, K = K, n = n , p = p, Y = Y,
+                   yh0 = yh0, r0 = r0)
   
   RSSp <- sapply(1:perms, function(j){
     step <- j
@@ -1519,15 +1538,7 @@ aov.multi.model <- function(object, lm.list,
   rownames(RSSp) <- rownames(RSSy) <- fit.names
   
   SS <- rep(RSSp[1,], each = K + 1) - RSSp
-  
-  int <- attr(refModel$LM$Terms, "intercept")
-  if(refModel$LM$gls) {
-    int <- crossprod(refModel$LM$Pcov, rep(int, n))
-  } else int <- rep(int, n)
-  
-  U0 <- qr.Q(qr(int * sqrt(refModel$LM$weights)))
-  yh0 <- fastFit(U0, Y, n, p)
-  r0 <- Y - yh0
+
   SSY <- sapply(1:perms, function(j){
     y <- yh0 + r0[ind[[j]],]
     sum(y^2) - sum(crossprod(U0, y)^2)
@@ -1540,21 +1551,26 @@ aov.multi.model <- function(object, lm.list,
   df[1] <- 1
   
   MS <- SS/rep(df, perms)
-  MSE <- RSSy/rep(dfe, perms)
+  MSE <- RSSy/matrix(rep(dfe, perms), length(dfe), perms)
   Fs <- MS/MSE
+  
+  SS[which(zapsmall(SS) == 0)] <- 1e-32
+  MS[which(zapsmall(MS) == 0)] <- 1e-32
+  Rsq[which(zapsmall(Rsq) == 0)] <- 1e-32
+  Fs[which(zapsmall(Fs) == 0)] <- 1e-32
   
   if(effect.type == "SS") {
     Pvals <- apply(SS, 1, pval)
-    Z <- apply(log(SS + 0.0000001), 1, effect.size)
+    Z <- apply(log(SS), 1, effect.size)
   } else   if(effect.type == "MS") {
     Pvals <- apply(MS, 1, pval)
-    Z <- apply(log(MS + 0.0000001), 1, effect.size)
+    Z <- apply(log(MS), 1, effect.size)
   } else   if(effect.type == "Rsq") {
     Pvals <- apply(Rsq, 1, pval)
-    Z <- apply(log(Rsq + 0.0000001), 1, effect.size)
+    Z <- apply(log(Rsq), 1, effect.size)
   } else{
     Pvals <- apply(Fs, 1, pval)
-    Z <- apply(log(Fs + 0.0000001), 1, effect.size)
+    Z <- apply(log(Fs), 1, effect.size)
   }
   SS[1,] <- NA
   MS[1,] <- NA
@@ -1568,9 +1584,10 @@ aov.multi.model <- function(object, lm.list,
   Rsq.obs <- Rsq[,1]
   F.obs <- Fs[,1]
   
-  tab <- data.frame(ResDf = dfe, DF = df, RSS = RSS.obs, SS = SS.obs, MS = MS.obs,
+  tab <- data.frame(ResDf = dfe, Df = df, RSS = RSS.obs, SS = SS.obs, MS = MS.obs,
                     Rsq = Rsq.obs, F = F.obs, Z = Z, P = Pvals)
   tab$DF[1] <- NA
+  tab$Rsq <- zapsmall(tab$Rsq, digits = 8)
   tab <-  rbind(tab, c(n-1, NA, SSY[1], NA, NA, NA, NA, NA, NA))
   rownames(tab)[NROW(tab)] <- "Total"
   
@@ -1592,6 +1609,7 @@ aov.multi.model <- function(object, lm.list,
   
   out <- list(table = tab, perm.method = pm, perm.number = perms,
               est.method = est, SS.type = NULL, effect.type = effect.type,
+              SS = SS[-1,], MS = MS[-1,], Rsq = Rsq[-1,], F = Fs[-1,],
               call = object$call)
   
 class(out) <- "anova.lm.rrpp"
@@ -1641,7 +1659,7 @@ getLSmeans <- function(fit, g){
   beta <- fit$LM$random.coef[[k]]
   dat <- fit$LM$data
   covCheck <- sapply(dat, class)
-  for(i in 1:k) if(covCheck[i] == "numeric") dat[[i]] <- mean(dat[[i]])
+  for(i in 1:length(covCheck)) if(covCheck[i] == "numeric") dat[[i]] <- mean(dat[[i]])
   L <- model.matrix(fit$LM$Terms, data = dat)
   L <- L[, colnames(L)  %in% rownames(beta[[1]])]
   getFitted <- function(b) L %*% b
@@ -1795,4 +1813,151 @@ makePWCorTable <- function(L){
 
 }
 
+# leaveOneOut
+# set-up for jackknife classification
+# used in classify
+leaveOneOut <- function(X, Y, n.ind) {
+  x <- X[-n.ind,]
+  QR <- qr(x)
+  Q <- qr.Q(QR)
+  R <- qr.R(QR)
+  H <- tcrossprod(solve(R), Q)
+  y <- Y[-n.ind,]
+  H %*% y
+}
 
+# RiReg
+# Ridge Regularization of a covariance matrix, if needed
+# used in classify
+RiReg <- function(Cov, residuals){
+  leads <- seq(0,1,0.005)[-1]
+  leads <- leads[-length(leads)]
+  I <- diag(1, NROW(Cov))
+  N <- NROW(residuals)
+  p <- NCOL(residuals)
+  
+  Covs <- lapply(1:length(leads), function(j){
+    lambda <- leads[[j]]
+    (lambda * Cov + (1 - lambda) * I)
+  })
+  logL <- sapply(1:length(leads), function(j){
+    C <- Covs[[j]]
+    N*p*log(2*pi) + N * log(det(C)) + sum(diag(
+      residuals %*% fast.solve(C) %*% t(residuals) 
+    ))
+  })
+  
+  Covs[[which.min(logL)]]
+  
+}
+
+
+
+
+logL <- function(fit){
+  n <- fit$LM$n
+  p <- fit$LM$p.prime
+  X <- as.matrix(fit$LM$X * sqrt(fit$LM$weights))
+  Y <- as.matrix(fit$LM$Y)
+  rdf <- fit$LM$data
+  if(fit$LM$gls){
+    Sig <- (crossprod(fit$LM$gls.residuals, 
+                      fast.solve(fit$LM$Cov)) %*%
+              fit$LM$gls.residuals) /n
+    s <- svd(Sig)
+    pr <- which(cumsum(s$d)/sum(s$d) < 0.999)
+    pp <- length(pr)
+    P <- as.matrix(Y %*% s$v[,pr])
+    fit$LM$data$Y <- P
+    pfit <- lm.rrpp(formula(fit$LM$Terms), print.progress = FALSE, 
+                    Cov = fit$LM$Cov, data = fit$LM$data, 
+                    weights = fit$LM$weights, iter = 0)
+    Sig <- (crossprod(pfit$LM$gls.residuals, fast.solve(pfit$LM$Cov)) %*%
+              pfit$LM$gls.residuals) / n
+    if(kappa(Sig) > 1e10) Sig <- RiReg(Sig, pfit$LM$gls.residuals)
+    
+    ll <- -0.5*(n*pp + n*log(det(Sig)) + pp*log(det(pfit$LM$Cov))+ n*pp*log(2*pi))
+  }  else {
+    
+    Sig <- crossprod(fit$LM$wResiduals) /n
+    s <- svd(Sig) 
+    pr <- which(cumsum(s$d)/sum(s$d) < 0.999)
+    pp <- length(pr)
+    P <- as.matrix(Y %*% s$v[,pr])
+    fit$LM$data$Y <- P
+    pfit <- lm.rrpp(formula(fit$LM$Terms), print.progress = FALSE, 
+                    data = fit$LM$data, 
+                    weights = fit$LM$weights, iter = 0)
+    Sig <- crossprod(pfit$LM$residuals) / n
+    if(kappa(Sig) > 1e10) Sig <- RiReg(Sig, pfit$LM$residuals)
+    ll <- -0.5*(n * pp + n * log(det(Sig)) + n * pp * log(2*pi))
+  }
+  
+  ll
+  
+}
+
+cov.trace <- function(fit) {
+  n <- fit$LM$n
+  p <- fit$LM$p.prime
+  if(fit$LM$gls){
+    Sig <- (crossprod(fit$LM$gls.residuals, 
+                      fast.solve(fit$LM$Cov)) %*%
+              fit$LM$gls.residuals) /n
+    
+  }  else {
+    
+    Sig <- crossprod(fit$LM$wResiduals) /n
+    
+  }
+  
+  sum(Sig^2)
+  
+}
+
+z.test <- function(aov.mm){
+  effect.type = aov.mm$effect.type
+  if(effect.type == "F") stat <- aov.mm$F
+  if(effect.type == "cohenf") stat <- aov.mm$F
+  if(effect.type == "SS") stat <- aov.mm$SS
+  if(effect.type == "MS") stat <- aov.mm$MS
+  if(effect.type == "Rsq") stat <- aov.mm$Rsq
+  
+  perms <- ncol(stat)
+  m <- nrow(stat)
+  stat.c <- sapply(1:m, function(j){
+    s <- stat[j,]
+    center(s)
+  })
+  
+  index <- combn(m, 2)
+  Dz <- Pz <- dist(matrix(0, m))
+
+  zdj <- function(x, y, j) {
+    obs <- x[j] - y[j]
+    sigd <- sqrt(var(x) + var(y))
+    obs/sigd
+  }
+  
+  for(i in 1:ncol(index)) {
+    x <- stat.c[,index[1,i]]
+    y <- stat.c[,index[2,i]]
+    res <- array(NA, perms)
+    for(j in 1: perms) res[j] <- zdj(x, y, j)
+    Dz[i] <- abs(res[1])
+    Pz[i] <- pval(abs(res))
+  }
+
+Z = as.matrix(Dz)
+P = as.matrix(Pz)
+
+options(warn = -1)
+mds <- cmdscale(Z, m-1, eig = TRUE)
+options(warn = 0)
+    
+list(Z = as.matrix(Dz), P = as.matrix(Pz), 
+     mds = mds,
+     form.names = rownames(aov.mm$table)[1:m],
+     model.names = paste("m", 0:(m-1), sep = ""))
+  
+}

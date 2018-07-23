@@ -62,7 +62,8 @@
 #' (n), number of dependent variables (p), dimension of data space (p.prime),
 #' QR decomposition of the design matrix, fitted values, residuals,
 #' weights, offset, model terms, model frame (data), random coefficients (through permutations),
-#' random vector distances for coefficients (through permutations), and whether OLS or GLS was performed}
+#' random vector distances for coefficients (through permutations), whether OLS or GLS was performed, 
+#' and the centroid for OLS and/or GLS methods.}
 #' \item{ANOVA}{Analysis of variance objects, including the SS type, random SS outcomes, random MS outcomes,
 #' random R-squared outcomes, random F outcomes, random Cohen's f-squared outcomes, P-values based on random F
 #' outcomes, effect sizes for random outcomes, sample size (n), number of variables (p), and degrees of freedom for
@@ -214,7 +215,6 @@
 #' 
 #' Y <- as.matrix(cbind(PlethMorph$TailLength,
 #' PlethMorph$HeadLength,
-#' PlethMorph$TailLength,
 #' PlethMorph$Snout.eye,
 #' PlethMorph$BodyWidth,
 #' PlethMorph$Forelimb,
@@ -277,7 +277,7 @@ lm.rrpp <- function(f1, iter = 999, seed = NULL, int.first = FALSE,
   }
   k <- length(fit$term.labels)
   id <- rownames(Y)
-  ind <- perm.index(n, iter = iter, seed = NULL)
+  ind <- perm.index(n, iter = iter, seed = seed)
   perms <- iter + 1
   if(print.progress) {
     step <- 4
@@ -299,6 +299,7 @@ lm.rrpp <- function(f1, iter = 999, seed = NULL, int.first = FALSE,
       stop("Either one or both of the dimensions of the covariance matrix do not match the number of observations.")
     Pcov <- Cov.proj(Cov, id)
     SS.args$P <- Pcov
+    beta.args$P <- Pcov
   } else Pcov <- NULL 
   if(k > 0){
     if(Parallel) {
@@ -344,26 +345,26 @@ lm.rrpp <- function(f1, iter = 999, seed = NULL, int.first = FALSE,
   {
     if(print.progress) cat("\n No terms for ANOVA; only RSS calculated in each permutation\n")
     if(!is.null(Cov)){
-      betas <- beta.iter.null(fit,  P = Pcov, ind = ind,  
+      betas <- beta.iter.null(fit.o,  P = Pcov, ind = ind,  
                               RRPP = RRPP, print.progress = print.progress)
       SS <- SS.iter.null(fit,  P = Pcov, ind = ind,  
                          RRPP = RRPP, print.progress = print.progress)
     }  else {
-      betas <- beta.iter.null(fit, ind = ind, RRPP=RRPP, print.progress = print.progress)
+      betas <- beta.iter.null(fit.o, ind = ind, RRPP=RRPP, print.progress = print.progress)
       SS <- SS.iter.null(fit, ind = ind, RRPP=RRPP, print.progress = print.progress)
     }
     SSY <- SS[1]
     df <- n - fit$wQRs.full[[1]]$rank
-    LM <- list(coefficients=fit$wCoefficients.full[[1]],
-               Y=fit$Y,  X=fit$X, n = n, p = p, p = p.prime,
-               QR = fit.o$QRs.full[[1]], fitted = fit$fitted.full[[1]],
-               residuals = fit$residuals.full[[1]],
-               weights = fit$weights, offset = fit$offset,
+    LM <- list(coefficients=fit.o$wCoefficients.full[[1]],
+               Y=fit.o$Y,  X=fit.o$X, n = n, p = p, p.prime = p.prime,
+               QR = fit.o$QRs.full[[1]], fitted = fit.o$fitted.full[[1]],
+               residuals = fit.o$residuals.full[[1]],
+               weights = fit.o$weights, offset = fit.o$offset,
                wQR = fit.o$wQRs.full[[1]],
                wFitted = fit.o$wFitted.full[[1]],
                wResiduals = fit.o$wResiduals.full[[1]],
-               Terms = fit$Terms,
-               term.labels = fit$term.labels, 
+               Terms = fit.o$Terms,
+               term.labels = fit.o$term.labels, 
                data = fit.o$data, 
                random.coef = betas$random.coef,
                random.coef.distances = betas$random.coef.distances,
@@ -393,6 +394,15 @@ lm.rrpp <- function(f1, iter = 999, seed = NULL, int.first = FALSE,
     out$LM$dist.coefficients <- D.coef
     out$LM$dist.wCoefficients <- D.wcoef
   }
+  centroid <- gls.centroid <- NULL
+  int <- matrix(attr(fit$Terms, "intercept"), n)
+  centroid <- lm.fit(int, Y)$coefficients
+  out$LM$centroid <- centroid
+  if(!is.null(Cov)) {
+    gls.centroid <- lm.fit(crossprod(Pcov, int), crossprod(Pcov, Y))$coefficients
+    out$LM$gls.centroid <- gls.centroid
+  }
+  
   class(out) = "lm.rrpp"
   out
 }

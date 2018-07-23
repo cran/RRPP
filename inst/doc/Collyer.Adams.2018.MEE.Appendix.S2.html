@@ -12,7 +12,7 @@
 
 <meta name="author" content="Michael L. Collyer &amp; Dean C. Adams" />
 
-<meta name="date" content="2018-04-22" />
+<meta name="date" content="2018-07-23" />
 
 <title>RRPP: An R package for fitting linear models to high-dimensional data using residual randomization</title>
 
@@ -280,11 +280,11 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 
 <h1 class="title toc-ignore">RRPP: An R package for fitting linear models to high-dimensional data using residual randomization</h1>
 <h4 class="author"><em>Michael L. Collyer &amp; Dean C. Adams</em></h4>
-<h4 class="date"><em>2018-04-22</em></h4>
+<h4 class="date"><em>2018-07-23</em></h4>
 
 
 
-<section id="appendix-s2" class="level1">
+<div id="appendix-s2" class="section level1">
 <h1>APPENDIX S2</h1>
 <p>This is a more detailed version of the section, “<strong>Analytical Demonstrations</strong>,” within the Methods in Ecology and Evolution article, “<strong>RRPP: An R package for fitting linear models to high-dimensional data using residual randomization</strong>,” by Michael L. Collyer and Dean C. Adams. The purpose of this vignette is to offer an opportunity for people reading that article to see code and results together. Some changes to code have been made, especially to enhance features that are difficult to introduce in the article, but the overall presentation should be basically the same.</p>
 <p>(Note parallel processing is available on Unix systems for <code>lm.rrpp</code>; see <code>lm.rrpp</code> help page for description on its use. This is helpful for large data sets.)</p>
@@ -314,10 +314,25 @@ PlethMorph (Adams &amp; Collyer, 2018)</code></pre>
 ## 
 ## Full Model Analysis of Variance
 ## 
-##                                   Df Residual Df       SS Residual SS
-## logHeadSize ~ sex + locality/year  8         259 2.718175    10.94887
-##                                         Rsq        F Z (from F) Pr(&gt;F)
-## logHeadSize ~ sex + locality/year 0.1988854 8.037445    12.6872  0.001</code></pre>
+##                     Df Residual Df       SS Residual SS       Rsq        F
+## sex + locality/year  8         259 2.718175    10.94887 0.1988854 8.037445
+##                     Z (from F) Pr(&gt;F)
+## sex + locality/year    3.95726  0.001
+## 
+## 
+## Redundancy Analysis (PCA on fitted values and residuals)
+## 
+##                Trace Proportion Rank
+## Fitted    0.01018043  0.1988854    1
+## Residuals 0.04100699  0.8011146    1
+## Total     0.05118742  1.0000000    1
+## 
+## Eigenvalues
+## 
+##                  PC1
+## Fitted    0.01018043
+## Residuals 0.04100699
+## Total     0.05118742</code></pre>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="kw">anova</span>(fit, <span class="dt">effect.type =</span> <span class="st">&quot;F&quot;</span>) </a></code></pre></div>
 <pre><code>## 
 ## Analysis of Variance, using Residual Randomization
@@ -378,18 +393,16 @@ PlethMorph (Adams &amp; Collyer, 2018)</code></pre>
 ## Estimation method: Ordinary Least Squares 
 ## Effect sizes (Z) based on F distributions
 ## 
-##                                   ResDf DF    RSS      SS      MS      Rsq
-## logHeadSize ~ sex (Null)            266    13.058                 0.044568
+##                                   ResDf Df    RSS      SS      MS      Rsq
+## logHeadSize ~ sex (Null)            266  1 13.058                 0.044568
 ## logHeadSize ~ sex + locality        265  1 12.587 0.47121 0.47121 0.079045
 ## logHeadSize ~ sex + locality/year   259  7 10.949 2.10907 0.30130 0.198885
 ## Total                               267    13.667                         
-##                                        F      Z Pr(&gt;F)   
-## logHeadSize ~ sex (Null)                                 
-## logHeadSize ~ sex + locality      9.9207 1.6155  0.001 **
-## logHeadSize ~ sex + locality/year 7.1273 3.5277  0.001 **
-## Total                                                    
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+##                                        F      Z     P Pr(&gt;F)
+## logHeadSize ~ sex (Null)                                    
+## logHeadSize ~ sex + locality      9.9207 1.6153 0.001       
+## logHeadSize ~ sex + locality/year 7.1273 3.5277 0.001       
+## Total                                                    267</code></pre>
 <p>One might wish to also look at individual model coefficients, and ascertain which have the largest effect:</p>
 <div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" data-line-number="1"><span class="kw">coef</span>(fit, <span class="dt">test =</span> <span class="ot">TRUE</span>)</a></code></pre></div>
 <pre><code>## 
@@ -464,9 +477,9 @@ PlethMorph (Adams &amp; Collyer, 2018)</code></pre>
 ## Effect sizes (Z) based on F distributions
 ## 
 ##                Df      SS      MS     Rsq       F      Z Pr(&gt;F)   
-## sex             1  0.5554 0.55537 0.04064 13.1376 1.7486  0.001 **
-## locality        1  0.4712 0.47121 0.03448 11.1466 1.5918  0.001 **
-## locality:year   6  1.6379 0.27298 0.11984  6.4574 2.9795  0.001 **
+## sex             1  0.5554 0.55537 0.04064 13.1376 1.8270  0.001 **
+## locality        1  0.4712 0.47121 0.03448 11.1466 1.6665  0.001 **
+## locality:year   6  1.6379 0.27298 0.11984  6.4574 3.2300  0.001 **
 ## Residuals     259 10.9489 0.04227 0.80111                         
 ## Total         267 13.6670                                         
 ## ---
@@ -483,12 +496,12 @@ PlethMorph (Adams &amp; Collyer, 2018)</code></pre>
 ## Sums of Squares and Cross-products: Type III 
 ## Effect sizes (Z) based on F distributions
 ## 
-##                Df      SS      MS     Rsq       F       Z Pr(&gt;F)   
-## sex             1  0.5554 0.55537 0.04064 13.1376 1.74864  0.001 **
-## locality        1  0.0573 0.05733 0.00419  1.3562 0.73543  0.228   
-## locality:year   6  1.6379 0.27298 0.11984  6.4574 2.97954  0.001 **
-## Residuals     259 10.9489 0.04227 0.80111                          
-## Total         267 13.6670                                          
+##                Df      SS      MS     Rsq       F      Z Pr(&gt;F)   
+## sex             1  0.5554 0.55537 0.04064 13.1376 1.8270  0.001 **
+## locality        1  0.0573 0.05733 0.00419  1.3562 0.8129  0.186   
+## locality:year   6  1.6379 0.27298 0.11984  6.4574 3.2300  0.001 **
+## Residuals     259 10.9489 0.04227 0.80111                         
+## Total         267 13.6670                                         
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ## 
@@ -514,9 +527,64 @@ PlethMorph (Adams &amp; Collyer, 2018)</code></pre>
 ## Full Model Analysis of Variance
 ## 
 ##     Df Residual Df         SS Residual SS       Rsq        F Z (from F)
-## fit  4          49 0.03224913  0.02408373 0.5724746 16.40327   24.93101
+## fit  4          49 0.03224913  0.02408373 0.5724746 16.40327   7.554966
 ##     Pr(&gt;F)
-## fit  0.001</code></pre>
+## fit  0.001
+## 
+## 
+## Redundancy Analysis (PCA on fitted values and residuals)
+## 
+##                  Trace Proportion Rank
+## Fitted    0.0006084742  0.5724746    4
+## Residuals 0.0004544100  0.4275254   49
+## Total     0.0010628843  1.0000000   53
+## 
+## Eigenvalues
+## 
+##                    PC1          PC2          PC3          PC4          PC5
+## Fitted    3.849870e-04 1.764119e-04 3.085883e-05 1.621648e-05             
+## Residuals 1.619045e-04 6.839587e-05 5.047318e-05 3.759011e-05 2.047058e-05
+## Total     4.644118e-04 2.541398e-04 7.223795e-05 5.490261e-05 4.912861e-05
+##                    PC6          PC7          PC8          PC9         PC10
+## Fitted                                                                    
+## Residuals 1.582271e-05 1.458609e-05 1.200661e-05 8.385278e-06 7.482781e-06
+## Total     3.339982e-05 2.272943e-05 1.873813e-05 1.276679e-05 9.089281e-06
+##                   PC11         PC12         PC13         PC14         PC15
+## Fitted                                                                    
+## Residuals 6.897359e-06 6.233091e-06 5.418807e-06 4.548549e-06 4.387139e-06
+## Total     8.876889e-06 8.366138e-06 6.403576e-06 5.802629e-06 5.174191e-06
+##                   PC16         PC17         PC18         PC19         PC20
+## Fitted                                                                    
+## Residuals 3.292845e-06 3.171306e-06 2.775875e-06 2.438171e-06 2.396772e-06
+## Total     4.634871e-06 3.968889e-06 3.338536e-06 2.945464e-06 2.729260e-06
+##                   PC21         PC22         PC23         PC24         PC25
+## Fitted                                                                    
+## Residuals 2.080026e-06 1.640955e-06 1.389238e-06 1.212228e-06 1.064698e-06
+## Total     2.451205e-06 2.011017e-06 1.976728e-06 1.393182e-06 1.222002e-06
+##                   PC26         PC27         PC28         PC29         PC30
+## Fitted                                                                    
+## Residuals 9.268209e-07 8.973873e-07 8.082674e-07 7.337292e-07 6.036330e-07
+## Total     1.028585e-06 1.007553e-06 9.490175e-07 8.016705e-07 6.668713e-07
+##                   PC31         PC32         PC33         PC34         PC35
+## Fitted                                                                    
+## Residuals 5.855804e-07 4.745689e-07 4.236368e-07 4.041517e-07 3.381474e-07
+## Total     6.208302e-07 5.972665e-07 5.198216e-07 4.632729e-07 4.385447e-07
+##                   PC36         PC37         PC38         PC39         PC40
+## Fitted                                                                    
+## Residuals 3.127258e-07 2.572864e-07 2.486463e-07 2.225561e-07 2.058639e-07
+## Total     3.599419e-07 3.568295e-07 3.049992e-07 2.580224e-07 2.251515e-07
+##                   PC41         PC42         PC43         PC44         PC45
+## Fitted                                                                    
+## Residuals 1.783248e-07 1.509165e-07 1.282044e-07 1.151942e-07 8.957966e-08
+## Total     2.161729e-07 1.940723e-07 1.841553e-07 1.527231e-07 1.460757e-07
+##                   PC46         PC47         PC48         PC49         PC50
+## Fitted                                                                    
+## Residuals 7.372679e-08 7.081862e-08 4.880217e-08 4.675002e-08             
+## Total     1.099678e-07 9.631629e-08 8.498400e-08 6.971729e-08 5.629158e-08
+##                   PC51         PC52         PC53
+## Fitted                                          
+## Residuals                                       
+## Total     5.254154e-08 4.466185e-08 3.947280e-08</code></pre>
 <div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb24-1" data-line-number="1"><span class="kw">anova</span>(fit) </a></code></pre></div>
 <pre><code>## 
 ## Analysis of Variance, using Residual Randomization
@@ -624,9 +692,64 @@ PlethMorph (Adams &amp; Collyer, 2018)</code></pre>
 ## Full Model Analysis of Variance
 ## 
 ##      Df Residual Df         SS Residual SS       Rsq        F Z (from F)
-## fit2  7          46 0.03425362  0.02207925 0.6080574 10.19488   22.05171
+## fit2  7          46 0.03425362  0.02207925 0.6080574 10.19488   7.952351
 ##      Pr(&gt;F)
-## fit2  0.001</code></pre>
+## fit2  0.001
+## 
+## 
+## Redundancy Analysis (PCA on fitted values and residuals)
+## 
+##                  Trace Proportion Rank
+## Fitted    0.0006462947  0.6080574    7
+## Residuals 0.0004165896  0.3919426   46
+## Total     0.0010628843  1.0000000   53
+## 
+## Eigenvalues
+## 
+##                    PC1          PC2          PC3          PC4          PC5
+## Fitted    3.957338e-04 1.850501e-04 3.182968e-05 1.870719e-05 8.114293e-06
+## Residuals 1.395372e-04 6.796933e-05 5.014292e-05 3.365095e-05 1.898400e-05
+## Total     4.644118e-04 2.541398e-04 7.223795e-05 5.490261e-05 4.912861e-05
+##                    PC6          PC7          PC8          PC9         PC10
+## Fitted    3.862654e-06 2.996995e-06                                       
+## Residuals 1.530876e-05 1.338597e-05 1.091492e-05 8.175278e-06 7.235521e-06
+## Total     3.339982e-05 2.272943e-05 1.873813e-05 1.276679e-05 9.089281e-06
+##                   PC11         PC12         PC13         PC14         PC15
+## Fitted                                                                    
+## Residuals 6.648194e-06 5.357529e-06 5.102802e-06 4.021889e-06 3.407037e-06
+## Total     8.876889e-06 8.366138e-06 6.403576e-06 5.802629e-06 5.174191e-06
+##                   PC16         PC17         PC18         PC19         PC20
+## Fitted                                                                    
+## Residuals 3.082008e-06 2.969319e-06 2.518086e-06 2.426184e-06 1.943860e-06
+## Total     4.634871e-06 3.968889e-06 3.338536e-06 2.945464e-06 2.729260e-06
+##                   PC21         PC22         PC23         PC24         PC25
+## Fitted                                                                    
+## Residuals 1.814297e-06 1.602380e-06 1.323871e-06 1.107033e-06 9.227058e-07
+## Total     2.451205e-06 2.011017e-06 1.976728e-06 1.393182e-06 1.222002e-06
+##                   PC26         PC27         PC28         PC29         PC30
+## Fitted                                                                    
+## Residuals 8.477007e-07 8.013882e-07 7.147848e-07 6.218278e-07 5.587410e-07
+## Total     1.028585e-06 1.007553e-06 9.490175e-07 8.016705e-07 6.668713e-07
+##                   PC31         PC32         PC33         PC34         PC35
+## Fitted                                                                    
+## Residuals 5.124513e-07 4.233803e-07 3.470126e-07 3.183663e-07 2.806883e-07
+## Total     6.208302e-07 5.972665e-07 5.198216e-07 4.632729e-07 4.385447e-07
+##                   PC36         PC37         PC38         PC39         PC40
+## Fitted                                                                    
+## Residuals 2.720957e-07 2.378960e-07 2.230410e-07 1.699063e-07 1.560535e-07
+## Total     3.599419e-07 3.568295e-07 3.049992e-07 2.580224e-07 2.251515e-07
+##                   PC41         PC42         PC43         PC44         PC45
+## Fitted                                                                    
+## Residuals 1.439218e-07 1.208382e-07 9.418386e-08 7.634829e-08 6.726911e-08
+## Total     2.161729e-07 1.940723e-07 1.841553e-07 1.527231e-07 1.460757e-07
+##                   PC46         PC47         PC48         PC49         PC50
+## Fitted                                                                    
+## Residuals 4.962168e-08                                                    
+## Total     1.099678e-07 9.631629e-08 8.498400e-08 6.971729e-08 5.629158e-08
+##                   PC51         PC52         PC53
+## Fitted                                          
+## Residuals                                       
+## Total     5.254154e-08 4.466185e-08 3.947280e-08</code></pre>
 <div class="sourceCode" id="cb43"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb43-1" data-line-number="1"><span class="kw">anova</span>(fit, fit2, <span class="dt">print.progress =</span> <span class="ot">FALSE</span>)</a></code></pre></div>
 <pre><code>## 
 ## Analysis of Variance, using Residual Randomization
@@ -635,16 +758,14 @@ PlethMorph (Adams &amp; Collyer, 2018)</code></pre>
 ## Estimation method: Ordinary Least Squares 
 ## Effect sizes (Z) based on F distributions
 ## 
-##                                     ResDf DF      RSS        SS         MS
-## coords ~ logSize + Sex * Pop (Null)    49    0.024084                     
+##                                     ResDf Df      RSS        SS         MS
+## coords ~ logSize + Sex * Pop (Null)    49  1 0.024084                     
 ## coords ~ logSize * Sex * Pop           46  3 0.022079 0.0020045 0.00066816
 ## Total                                  53    0.056333                     
-##                                         Rsq      F      Z Pr(&gt;F)   
-## coords ~ logSize + Sex * Pop (Null) 0.57247                        
-## coords ~ logSize * Sex * Pop        0.60806 1.3921 3.6279  0.001 **
-## Total                                                              
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+##                                         Rsq      F      Z     P Pr(&gt;F)
+## coords ~ logSize + Sex * Pop (Null) 0.57247                           
+## coords ~ logSize * Sex * Pop        0.60806 1.3921 3.6279 0.001       
+## Total                                                               53</code></pre>
 <div class="sourceCode" id="cb45"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb45-1" data-line-number="1">PW2 &lt;-<span class="st"> </span><span class="kw">pairwise</span>(fit2, <span class="dt">fit.null =</span> fit, <span class="dt">groups =</span> groups, </a>
 <a class="sourceLine" id="cb45-2" data-line-number="2">                <span class="dt">covariate =</span> Pupfish<span class="op">$</span>logSize, <span class="dt">print.progress =</span> <span class="ot">FALSE</span>) </a>
 <a class="sourceLine" id="cb45-3" data-line-number="3">PW2</a></code></pre></div>
@@ -763,10 +884,65 @@ PlethMorph (Adams &amp; Collyer, 2018)</code></pre>
 ## 
 ## Full Model Analysis of Variance
 ## 
-##                         Df Residual Df         SS Residual SS       Rsq
-## D ~ logSize + Sex * Pop  4          49 0.03224913  0.02408373 0.5724746
-##                                F Z (from F) Pr(&gt;F)
-## D ~ logSize + Sex * Pop 16.40327   24.93101  0.001</code></pre>
+##                     Df Residual Df         SS Residual SS       Rsq
+## logSize + Sex * Pop  4          49 0.03224913  0.02408373 0.5724746
+##                            F Z (from F) Pr(&gt;F)
+## logSize + Sex * Pop 16.40327   7.554966  0.001
+## 
+## 
+## Redundancy Analysis (PCA on fitted values and residuals)
+## 
+##                  Trace Proportion Rank
+## Fitted    0.0006084742  0.5724746    4
+## Residuals 0.0004544100  0.4275254   49
+## Total     0.0010628843  1.0000000   53
+## 
+## Eigenvalues
+## 
+##                    PC1          PC2          PC3          PC4          PC5
+## Fitted    3.849870e-04 1.764119e-04 3.085883e-05 1.621648e-05             
+## Residuals 1.619045e-04 6.839587e-05 5.047318e-05 3.759011e-05 2.047058e-05
+## Total     4.644118e-04 2.541398e-04 7.223795e-05 5.490261e-05 4.912861e-05
+##                    PC6          PC7          PC8          PC9         PC10
+## Fitted                                                                    
+## Residuals 1.582271e-05 1.458609e-05 1.200661e-05 8.385278e-06 7.482781e-06
+## Total     3.339982e-05 2.272943e-05 1.873813e-05 1.276679e-05 9.089281e-06
+##                   PC11         PC12         PC13         PC14         PC15
+## Fitted                                                                    
+## Residuals 6.897359e-06 6.233091e-06 5.418807e-06 4.548549e-06 4.387139e-06
+## Total     8.876889e-06 8.366138e-06 6.403576e-06 5.802629e-06 5.174191e-06
+##                   PC16         PC17         PC18         PC19         PC20
+## Fitted                                                                    
+## Residuals 3.292845e-06 3.171306e-06 2.775875e-06 2.438171e-06 2.396772e-06
+## Total     4.634871e-06 3.968889e-06 3.338536e-06 2.945464e-06 2.729260e-06
+##                   PC21         PC22         PC23         PC24         PC25
+## Fitted                                                                    
+## Residuals 2.080026e-06 1.640955e-06 1.389238e-06 1.212228e-06 1.064698e-06
+## Total     2.451205e-06 2.011017e-06 1.976728e-06 1.393182e-06 1.222002e-06
+##                   PC26         PC27         PC28         PC29         PC30
+## Fitted                                                                    
+## Residuals 9.268209e-07 8.973873e-07 8.082674e-07 7.337292e-07 6.036330e-07
+## Total     1.028585e-06 1.007553e-06 9.490175e-07 8.016705e-07 6.668713e-07
+##                   PC31         PC32         PC33         PC34         PC35
+## Fitted                                                                    
+## Residuals 5.855804e-07 4.745689e-07 4.236368e-07 4.041517e-07 3.381474e-07
+## Total     6.208302e-07 5.972665e-07 5.198216e-07 4.632729e-07 4.385447e-07
+##                   PC36         PC37         PC38         PC39         PC40
+## Fitted                                                                    
+## Residuals 3.127258e-07 2.572864e-07 2.486463e-07 2.225561e-07 2.058639e-07
+## Total     3.599419e-07 3.568295e-07 3.049992e-07 2.580224e-07 2.251515e-07
+##                   PC41         PC42         PC43         PC44         PC45
+## Fitted                                                                    
+## Residuals 1.783248e-07 1.509165e-07 1.282044e-07 1.151942e-07 8.957966e-08
+## Total     2.161729e-07 1.940723e-07 1.841553e-07 1.527231e-07 1.460757e-07
+##                   PC46         PC47         PC48         PC49         PC50
+## Fitted                                                                    
+## Residuals 7.372679e-08 7.081862e-08 4.880217e-08 4.675002e-08             
+## Total     1.099678e-07 9.631629e-08 8.498400e-08 6.971729e-08 5.629158e-08
+##                   PC51         PC52         PC53
+## Fitted                                          
+## Residuals                                       
+## Total     5.254154e-08 4.466185e-08 3.947280e-08</code></pre>
 <div class="sourceCode" id="cb55"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb55-1" data-line-number="1"><span class="kw">summary</span>(fit)</a></code></pre></div>
 <pre><code>## 
 ## Linear Model fit with lm.rrpp
@@ -779,10 +955,65 @@ PlethMorph (Adams &amp; Collyer, 2018)</code></pre>
 ## 
 ## Full Model Analysis of Variance
 ## 
-##                              Df Residual Df         SS Residual SS
-## coords ~ logSize + Sex * Pop  4          49 0.03224913  0.02408373
-##                                    Rsq        F Z (from F) Pr(&gt;F)
-## coords ~ logSize + Sex * Pop 0.5724746 16.40327   24.93101  0.001</code></pre>
+##                     Df Residual Df         SS Residual SS       Rsq
+## logSize + Sex * Pop  4          49 0.03224913  0.02408373 0.5724746
+##                            F Z (from F) Pr(&gt;F)
+## logSize + Sex * Pop 16.40327   7.554966  0.001
+## 
+## 
+## Redundancy Analysis (PCA on fitted values and residuals)
+## 
+##                  Trace Proportion Rank
+## Fitted    0.0006084742  0.5724746    4
+## Residuals 0.0004544100  0.4275254   49
+## Total     0.0010628843  1.0000000   53
+## 
+## Eigenvalues
+## 
+##                    PC1          PC2          PC3          PC4          PC5
+## Fitted    3.849870e-04 1.764119e-04 3.085883e-05 1.621648e-05             
+## Residuals 1.619045e-04 6.839587e-05 5.047318e-05 3.759011e-05 2.047058e-05
+## Total     4.644118e-04 2.541398e-04 7.223795e-05 5.490261e-05 4.912861e-05
+##                    PC6          PC7          PC8          PC9         PC10
+## Fitted                                                                    
+## Residuals 1.582271e-05 1.458609e-05 1.200661e-05 8.385278e-06 7.482781e-06
+## Total     3.339982e-05 2.272943e-05 1.873813e-05 1.276679e-05 9.089281e-06
+##                   PC11         PC12         PC13         PC14         PC15
+## Fitted                                                                    
+## Residuals 6.897359e-06 6.233091e-06 5.418807e-06 4.548549e-06 4.387139e-06
+## Total     8.876889e-06 8.366138e-06 6.403576e-06 5.802629e-06 5.174191e-06
+##                   PC16         PC17         PC18         PC19         PC20
+## Fitted                                                                    
+## Residuals 3.292845e-06 3.171306e-06 2.775875e-06 2.438171e-06 2.396772e-06
+## Total     4.634871e-06 3.968889e-06 3.338536e-06 2.945464e-06 2.729260e-06
+##                   PC21         PC22         PC23         PC24         PC25
+## Fitted                                                                    
+## Residuals 2.080026e-06 1.640955e-06 1.389238e-06 1.212228e-06 1.064698e-06
+## Total     2.451205e-06 2.011017e-06 1.976728e-06 1.393182e-06 1.222002e-06
+##                   PC26         PC27         PC28         PC29         PC30
+## Fitted                                                                    
+## Residuals 9.268209e-07 8.973873e-07 8.082674e-07 7.337292e-07 6.036330e-07
+## Total     1.028585e-06 1.007553e-06 9.490175e-07 8.016705e-07 6.668713e-07
+##                   PC31         PC32         PC33         PC34         PC35
+## Fitted                                                                    
+## Residuals 5.855804e-07 4.745689e-07 4.236368e-07 4.041517e-07 3.381474e-07
+## Total     6.208302e-07 5.972665e-07 5.198216e-07 4.632729e-07 4.385447e-07
+##                   PC36         PC37         PC38         PC39         PC40
+## Fitted                                                                    
+## Residuals 3.127258e-07 2.572864e-07 2.486463e-07 2.225561e-07 2.058639e-07
+## Total     3.599419e-07 3.568295e-07 3.049992e-07 2.580224e-07 2.251515e-07
+##                   PC41         PC42         PC43         PC44         PC45
+## Fitted                                                                    
+## Residuals 1.783248e-07 1.509165e-07 1.282044e-07 1.151942e-07 8.957966e-08
+## Total     2.161729e-07 1.940723e-07 1.841553e-07 1.527231e-07 1.460757e-07
+##                   PC46         PC47         PC48         PC49         PC50
+## Fitted                                                                    
+## Residuals 7.372679e-08 7.081862e-08 4.880217e-08 4.675002e-08             
+## Total     1.099678e-07 9.631629e-08 8.498400e-08 6.971729e-08 5.629158e-08
+##                   PC51         PC52         PC53
+## Fitted                                          
+## Residuals                                       
+## Total     5.254154e-08 4.466185e-08 3.947280e-08</code></pre>
 <div class="sourceCode" id="cb57"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb57-1" data-line-number="1"><span class="kw">anova</span>(fitD)</a></code></pre></div>
 <pre><code>## 
 ## Analysis of Variance, using Residual Randomization
@@ -905,8 +1136,8 @@ PlethMorph (Adams &amp; Collyer, 2018)</code></pre>
 ## 1000 random permutations using RRPP 
 ## 
 ##                 d.obs  UCL (95%)        Zd Pr(&gt;d)
-## (Intercept) 1.2992281 78.5454347 -5.143547  1.000
-## SVL         0.9681511  0.3648632  7.290075  0.001</code></pre>
+## (Intercept) 8.4210071 82.5701216 -3.295280  0.999
+## SVL         0.8307294  0.4635196  4.365646  0.002</code></pre>
 <p>Although analyses on either model fit indicate a significant relationship between tail length and snout-to-vent length (SVL), the GLS coefficients test and ANOVA show how phylogenetic auto-correlation among species augments the OLS-estimated relationship. The following is a multivariate example:</p>
 <div class="sourceCode" id="cb69"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb69-1" data-line-number="1">Y &lt;-<span class="st"> </span><span class="kw">as.matrix</span>(<span class="kw">cbind</span>(PlethMorph<span class="op">$</span>TailLength,</a>
 <a class="sourceLine" id="cb69-2" data-line-number="2">PlethMorph<span class="op">$</span>HeadLength,</a>
@@ -980,8 +1211,8 @@ PlethMorph (Adams &amp; Collyer, 2018)</code></pre>
 <p>Adams, D. C., Rohlf, F. J., &amp; Slice, D. E. 2013. A field comes of age: Geometric morphometrics in the 21st century. Hystrix, 24, 7–14.</p>
 <p>Bookstein, F. L. (1991). Morphometric tools for landmark data: geometry and biology. Cambridge: Cambridge University Press.</p>
 <p>Collyer, M. L., Sekora, D. J., &amp; Adams, D. C. (2015). A method for analysis of phenotypic change for phenotypes described by high-dimensional data. Heredity, 115, 357–365.</p>
-<p>Gilbert, M. C. (2016). Impacts of habitat fragmentation on the cranial morphology of a threatened desert fish (<em>Cyprinodon pecosensis</em>). Western Kentucky University.</p>
-</section>
+<p>Gilbert, M. C. (2016). Impacts of habitat fragmentation on the cranial morphology of a threatened desert fish (<em>Cyprinodon pecosensis</em>). Masters thesis. Western Kentucky University, Bowling Green, KY, USA.</p>
+</div>
 
 
 

@@ -17,6 +17,7 @@
 #' See \code{\link{lm.rrpp}} for examples.
 #' @param print.progress A logical argument if multiple models are used and one wishes to view progress
 #' for sums of squares (SS) calculations.
+#' @export anova.lm.rrpp
 #' @export
 #' @author Michael Collyer
 #' @keywords utilities
@@ -46,6 +47,7 @@
 anova.lm.rrpp <- function(object, ...,
                           effect.type = c("F", "cohenf", "SS", "MS", "Rsq"),
                           error = NULL, print.progress = TRUE) {
+  effect.type <- match.arg(effect.type)
   dots <- list(...)
   lm.check <- sapply(dots, inherits, "lm.rrpp")
   if(any(lm.check)) {
@@ -53,7 +55,7 @@ anova.lm.rrpp <- function(object, ...,
     out <- aov.multi.model(object, lm.list, 
                            effect.type = effect.type, print.progress = print.progress)
   } else out <- aov.single.model(object, ...,
-                          effect.type = c("F", "cohenf", "SS", "MS", "Rsq"),
+                          effect.type = effect.type,
                           error = error)
   out
 }
