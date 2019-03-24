@@ -35,7 +35,8 @@
 #' @param fit A linear model fit using \code{\link{lm.rrpp}}.
 #' @param fit.null An alternative linear model fit to use as a null model for RRPP, if the null model
 #' of the fit is not desired.  Note, for FRPP this argument should remain NULL and FRPP
-#' must be established in the lm.rrpp fit.
+#' must be established in the lm.rrpp fit (RRPP = FALSE).  If the null model is uncertain, 
+#' using \code{\link{reveal.model.designs}} will help elucidate the inherent null model used.
 #' @param groups A factor or vector that is coercible into a factor, describing the levels of
 #' the groups for which to find LS means or slopes.  Normally this factor would be part of the 
 #' model fit, but it is not necessary for that to be the case in order to obtain results.
@@ -225,6 +226,7 @@ pairwise <- function(fit, fit.null = NULL, groups, covariate = NULL,
   
   if(gls) res <- fitf$LM$gls.residuals else res <- fitf$LM$wResiduals
   disp.args <- list(res = as.matrix(res), ind.i = NULL, x = model.matrix(~groups + 0))
+  if(gls) disp.args$x <- crossprod(fitf$LM$Pcov, disp.args$x)
   g.disp <- function(res, ind.i, x) {
     r <- res[ind.i,]
     if(NCOL(r) > 1) d <- apply(r, 1, function(x) sum(x^2)) else
@@ -242,7 +244,7 @@ pairwise <- function(fit, fit.null = NULL, groups, covariate = NULL,
 
   out <- list(LS.means = means, slopes = slopes, means.dist = means.dist, means.vec.cor = means.vec.cor,
               slopes.length = slopes.length, slopes.dist = slopes.dist, slopes.vec.cor = slopes.vec.cor,
-              vars = vars, n <- fit$LM$n, p = fit$LM$p, PermInfo = fitf$PermInfo)
+              vars = vars, n = fit$LM$n, p = fit$LM$p, PermInfo = fitf$PermInfo)
   
   class(out) <- "pairwise"
   out

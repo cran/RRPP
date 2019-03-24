@@ -10,7 +10,7 @@ Key functions for this package:
 \item{\code{\link{lm.rrpp}}}{Fits linear models, using RRPP.}
 \item{\code{\link{anova.lm.rrpp}}}{ANOVA on linear models, using RRPP, plus model comparisons.}
 \item{\code{\link{coef.lm.rrpp}}}{Extract coefficients or perform test on coefficients, using RRPP.}
-\item{\code{\link{predict.lm.rrpp}}}{Predict values from lm.rrpp fits and generate boostrapped confidence intervals.}
+\item{\code{\link{predict.lm.rrpp}}}{Predict values from lm.rrpp fits and generate bootstrapped confidence intervals.}
 \item{\code{\link{pairwise}}}{Perform pairwise tests, based on lm.rrpp model fits.}
 }
 \description{
@@ -23,6 +23,11 @@ An especially useful option of this package is to fit models with either ordinar
 least squares estimation (OLS or GLS, respectively), using theoretic covariance matrices.  Mixed linear
 effects can also be evaluated.
 }
+\section{RRPP TOC}{
+
+RRPP-package
+}
+
 \author{
 Michael Collyer and Dean Adams
 }

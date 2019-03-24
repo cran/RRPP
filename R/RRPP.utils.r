@@ -35,133 +35,144 @@ print.lm.rrpp <- function(x, ...){
 #' @author Michael Collyer
 #' @keywords utilities
 summary.lm.rrpp <- function(object, formula = TRUE, ...){
-  x <- object
-  LM <- x$LM
-  PI <- x$PermInfo
-  AN <- x$ANOVA
-  perms <- PI$perms
-  dv <- LM$dist.coefficients
-  n <- LM$n
-  p <- LM$p
-  p.prime <- LM$p.prime
-  SS <- AN$SS
-  SS.type <- AN$SS.type
-  k <- length(LM$term.labels)
-  if(LM$gls) P <- LM$Pcov
-  
-  if(k > 0) {
-    SSE <- unlist(SS[k+1,])
-    SST <- unlist(SS[k+2,])
-    SSM <- SST - SSE
-    df <- AN$df
-    dfe <- df[k+1]
-    dfM <- sum(df[1:k])
-    Fs <- (SSM/dfM)/(SSE/dfe)
-    P <- pval(Fs)
-    Z <- effect.size(log(Fs))
-    Rsq <- SSM[1]/SST[1]
-    SSM.obs <- SSM[1]
-    Fs.obs <- Fs[1]
-  } else {
+  if(inherits(object, "manova.lm.rrpp")) out <- summary.manova.lm.rrpp(object) else {
+    x <- object
+    LM <- x$LM
+    PI <- x$PermInfo
+    AN <- x$ANOVA
+    perms <- PI$perms
+    dv <- LM$dist.coefficients
+    n <- LM$n
+    p <- LM$p
+    p.prime <- LM$p.prime
+    SS <- AN$SS
+    SSM.obs <- SS[,1]
+    RSS <- AN$RSS
+    TSS <- AN$TSS
+    RSS.model <- AN$RSS.model
+    if(is.null(RSS)) RSS <- RSS.model
+    if(is.null(RSS)) TSS <- RSS.model
+    SS.type <- AN$SS.type
+    k <- length(LM$term.labels)
+    if(LM$gls) P <- LM$Pcov
+    
+    if(k > 0) {
+      df <- AN$df
+      dfe <- df[k+1]
+      dfM <- sum(df[1:k])
+      SSM <- (TSS[1,] - RSS.model)
+      SSM.obs <- SSM[1]
+      Rsq <- SSM.obs/TSS[1]
+      Fs <- (SSM/dfM)/(RSS.model/dfe)
+      Fs.obs <- Fs[1]
+      P <- pval(Fs)
+      Z <- effect.size(log(Fs))
+      
+      Fs.obs <- Fs[1]
+    } else {
       df <- 0
       dfe <- AN$df
       dfM <- 1
-      SST <- SSE <- unlist(SS)
       SSM <- Fs <- Z <- Rsq <- SSM.obs <- Fs.obs <- P <- ""
     }
-
-  tab <- data.frame(dfM = dfM, dfe = dfe,
-                    SSM = SSM.obs, RSS = SSE[1], Rsq = Rsq,
-                    F = Fs.obs, Z = Z, P = P)
-  dimnames(tab)[[2]] <- c("Df",
-                          "Residual Df",
-                          "SS",
-                          "Residual SS",
-                          "Rsq",
-                          "F",
-                          "Z (from F)",
-                          "Pr(>F)")
-  if(formula) dimnames(tab)[[1]] <- deparse(x$call$f1[[3]]) else
-    dimnames(tab)[[1]] <- deparse(substitute(object))
-  
-  pca.fitted <- prcomp(x$LM$wFitted)
-  pca.residuals <- prcomp(x$LM$wResiduals)
-  pca.total <- prcomp(x$LM$Y)
-  
-  if(x$LM$gls) {
-    Pcov <- x$LM$Pcov
-    PY <- crossprod(Pcov, x$LM$Y * sqrt(x$LM$weights))
-    PX <- as.matrix(crossprod(Pcov, x$LM$X * sqrt(x$LM$weights)))
-    Uf <- qr.Q(qr(PX))
-    int <- attr(x$LM$Terms, "intercept")
-    Pint <- as.matrix(crossprod(Pcov, rep(int, n)))
-    Un <- qr.Q(qr(Pint))
-    glsfitted <- fastFit(Uf, PY, n, p)
-    glsmeans <- fastFit(Un, PY, n, p)
     
-    Sf <- crossprod(glsfitted) - crossprod(glsmeans)
-    Sr <- crossprod((PY - glsfitted))
-    Sy <- crossprod(PY) - crossprod(glsmeans)
+    tab <- data.frame(dfM = dfM, dfe = dfe,
+                      SSM = SSM.obs, RSS = RSS[1], Rsq = Rsq,
+                      F = Fs.obs, Z = Z, P = P)
+    dimnames(tab)[[2]] <- c("Df",
+                            "Residual Df",
+                            "SS",
+                            "Residual SS",
+                            "Rsq",
+                            "F",
+                            "Z (from F)",
+                            "Pr(>F)")
+    if(formula) dimnames(tab)[[1]] <- deparse(formula(x$call$f1)[[3]]) else
+      dimnames(tab)[[1]] <- deparse(substitute(object))
     
-    Cf <- Sf/(n - 1)
-    Cr <- Sr/(n - 1)
-    Cy <- Sy/(n - 1)
+    pca.fitted <- prcomp(x$LM$wFitted)
+    pca.residuals <- prcomp(x$LM$wResiduals)
+    pca.total <- prcomp(x$LM$Y)
     
-    pca.fitted <- pca.residuals <- pca.total <- list()
+    if(x$LM$gls) {
+      Pcov <- x$LM$Pcov
+      PY <- crossprod(Pcov, x$LM$Y * sqrt(x$LM$weights))
+      PX <- as.matrix(crossprod(Pcov, x$LM$X * sqrt(x$LM$weights)))
+      Uf <- qr.Q(qr(PX))
+      int <- attr(x$LM$Terms, "intercept")
+      Pint <- as.matrix(crossprod(Pcov, rep(int, n)))
+      Un <- qr.Q(qr(Pint))
+      glsfitted <- fastFit(Uf, PY, n, p)
+      glsmeans <- fastFit(Un, PY, n, p)
+      
+      Sf <- crossprod(glsfitted) - crossprod(glsmeans)
+      Sr <- crossprod((PY - glsfitted))
+      Sy <- crossprod(PY) - crossprod(glsmeans)
+      
+      Cf <- Sf/(n - 1)
+      Cr <- Sr/(n - 1)
+      Cy <- Sy/(n - 1)
+      
+      pca.fitted <- pca.residuals <- pca.total <- list()
+      
+      svd.Y <- svd(Cy)
+      keep <- which(zapsmall(svd.Y$d) > 0)
+      pca.total$sdev <- sqrt(svd.Y$d[keep])
+      pca.total$rotation <- as.matrix(svd.Y$v[, keep])
+      pca.total$x <- (PY - glsmeans) %*% as.matrix(svd.Y$v[, keep])
+      
+      svd.f <- svd(Cf)
+      keep <- which(zapsmall(svd.f$d) > 0)
+      if(length(keep) == 0) {
+        pca.fitted$sdev <- pca.fitted$rotation <- pca.fitted$x <- 0
+      } else {
+        pca.fitted$sdev <- sqrt(svd.f$d[keep])
+        pca.fitted$rotation <- as.matrix(svd.f$v[, keep])
+        pca.fitted$x <- glsfitted %*% as.matrix(svd.f$v[, keep])
+      }
+      
+      svd.r <- svd(Cr)
+      keep <- which(zapsmall(svd.r$d) > 0)
+      pca.residuals$sdev <- sqrt(svd.r$d[keep])
+      pca.residuals$rotation <- as.matrix(svd.r$v[, keep])
+      pca.residuals$x <- (PY - glsfitted) %*% as.matrix(svd.r$v[, keep])
+      
+    }
     
-    svd.Y <- svd(Cy)
-    keep <- which(zapsmall(svd.Y$d) > 0)
-    pca.total$sdev <- sqrt(svd.Y$d[keep])
-    pca.total$rotation <- as.matrix(svd.Y$v[, keep])
-    pca.total$x <- (PY - glsmeans) %*% as.matrix(svd.Y$v[, keep])
+    d.f <- pca.fitted$sdev^2
+    d.r <- pca.residuals$sdev^2
+    d.t <- pca.total$sdev^2
     
-    svd.f <- svd(Cf)
-    keep <- which(zapsmall(svd.f$d) > 0)
-    pca.fitted$sdev <- sqrt(svd.f$d[keep])
-    pca.fitted$rotation <- as.matrix(svd.f$v[, keep])
-    pca.fitted$x <- glsfitted %*% as.matrix(svd.f$v[, keep])
+    rank.f <- length(which(zapsmall(d.f) > 0))
+    rank.r <- length(which(zapsmall(d.r) > 0))
+    rank.t <- length(which(zapsmall(d.t) > 0))
     
-    svd.r <- svd(Cr)
-    keep <- which(zapsmall(svd.r$d) > 0)
-    pca.residuals$sdev <- sqrt(svd.r$d[keep])
-    pca.residuals$rotation <- as.matrix(svd.r$v[, keep])
-    pca.residuals$x <- (PY - glsfitted) %*% as.matrix(svd.r$v[, keep])
-
+    Trace <- zapsmall(c(sum(d.f), sum(d.r), sum(d.t)))
+    Proportion <- zapsmall(Trace/sum(d.t))
+    Rank <- c(rank.f, rank.r, rank.t)
+    
+    redund <- data.frame(Trace, Proportion, Rank)
+    rownames(redund) <- c("Fitted", "Residuals", "Total")
+    eigs.f <- eigs.r <- eigs.t <- rep(NA, rank.t)
+    eigs.f[1:rank.f] <- d.f[1:rank.f]
+    eigs.r[1:rank.r] <- d.r[1:rank.r]
+    eigs.t[1:rank.t] <- d.t[1:rank.t]
+    eigs <- as.table(zapsmall(rbind(eigs.f, eigs.r, eigs.t)))
+    rownames(eigs) <- c("Fitted", "Residuals", "Total")
+    colnames(eigs) <- paste("PC", 1:rank.t, sep="")
+    
+    rfit <-refit(x)
+    RR <- rfit$wResiduals.reduced
+    RF <- rfit$wResiduals.full
+    SSCP <- lapply(1:length(RF), function(j) crossprod(RR[[j]] - RF[[j]]))
+    names(SSCP) <- LM$term.labels
+    SSCP <- c(SSCP, list(Residuals = as.matrix(crossprod(RF[[length(RF)]]))))
+    out <- list(table = tab, SSCP = SSCP, n = n, p = p, p.prime = p.prime, k = k, 
+                perms = perms, dv = dv, SS = SS, SS.type = SS.type, redundancy = redund,
+                eigenvalues = eigs, gls = x$LM$gls)
+    class(out) <- "summary.lm.rrpp"
   }
-  
-  d.f <- pca.fitted$sdev^2
-  d.r <- pca.residuals$sdev^2
-  d.t <- pca.total$sdev^2
-  
-  rank.f <- length(which(zapsmall(d.f) > 0))
-  rank.r <- length(which(zapsmall(d.r) > 0))
-  rank.t <- length(which(zapsmall(d.t) > 0))
-  
-  Trace <- c(sum(d.f), sum(d.r), sum(d.t))
-  Proportion <- Trace/sum(d.t)
-  Rank <- c(rank.f, rank.r, rank.t)
-  
-  redund <- data.frame(Trace, Proportion, Rank)
-  rownames(redund) <- c("Fitted", "Residuals", "Total")
-  eigs.f <- eigs.r <- eigs.t <- rep(NA, rank.t)
-  eigs.f[1:rank.f] <- d.f[1:rank.f]
-  eigs.r[1:rank.r] <- d.r[1:rank.r]
-  eigs.t[1:rank.t] <- d.t[1:rank.t]
-  eigs <- as.table(rbind(eigs.f, eigs.r, eigs.t))
-  rownames(eigs) <- c("Fitted", "Residuals", "Total")
-  colnames(eigs) <- paste("PC", 1:rank.t, sep="")
-
-  rfit <-refit(x)
-  RR <- rfit$wResiduals.reduced
-  RF <- rfit$wResiduals.full
-  SSCP <- lapply(1:length(RF), function(j) crossprod(RR[[j]] - RF[[j]]))
-  names(SSCP) <- LM$term.labels
-  SSCP <- c(SSCP, list(Residuals = as.matrix(crossprod(RF[[length(RF)]]))))
-  out <- list(table = tab, SSCP = SSCP, n = n, p = p, p.prime = p.prime, k = k, 
-              perms = perms, dv = dv, SS = SS, SS.type = SS.type, redundancy = redund,
-              eigenvalues = eigs, gls = x$LM$gls)
-  class(out) <- "summary.lm.rrpp"
-  out
+ out
 }
 
 #' Print/Summary Function for RRPP
@@ -185,7 +196,7 @@ print.summary.lm.rrpp <- function(x, ...) {
   print(x$table)
   cat("\n\nRedundancy Analysis (PCA on fitted values and residuals)\n\n")
   if(x$gls) {
-    cat("nGLS mean used rather than center of gravity.  Projection is not orthogonal.\n\n")
+    cat("\nGLS mean used rather than center of gravity.  Projection is not orthogonal.\n\n")
   }
   print(x$redundancy)
   cat("\nEigenvalues\n\n")
@@ -349,9 +360,9 @@ summary.anova.lm.rrpp <- function(object, ...){
 #' and is a variable likely used in \code{\link{lm.rrpp}}.
 #' This vector is a vector of covariate values equal to the number of observations.
 #' @param reg.type If "regression" is chosen for plot type, this argument
-#' indicates whether a common regression component (CRC) plot, prediction line 
-#' (Predline) plot, or regression score (RegScore) plotting is performed.  
-#' For explanation of CRC, see Mitteroecker et al. (2004).  For explanation of prediction line,
+#' indicates whether prediction line 
+#' (PredLine) or regression score (RegScore) plotting is performed.  
+#' For explanation of prediction line,
 #' see Adams and Nistri (2010).  For explanation of regression score, see 
 #' Drake and Klingenberg (2008).
 #' @param ... other arguments passed to plot (helpful to employ
@@ -361,26 +372,25 @@ summary.anova.lm.rrpp <- function(object, ...){
 #' @author Michael Collyer
 #' @keywords utilities
 #' @keywords visualization
-#' @references Mitteroecker, P., P. Gunz, M. Bernhard, K. Schaefer, and F. L. Bookstein. 2004. 
-#' Comparison of cranial ontogenetic trajectories among great apes and humans. J. Hum. Evol. 46:679-698.
 #' @references Drake, A. G., and C. P. Klingenberg. 2008. The pace of morphological change: Historical 
 #' transformation of skull shape in St Bernard dogs. Proc. R. Soc. B. 275:71-76.
 #' @references Adams, D. C., and A. Nistri. 2010. Ontogenetic convergence and evolution of foot morphology 
 #' in European cave salamanders (Family: Plethodontidae). BMC Evol. Biol. 10:1-10.
 plot.lm.rrpp <- function(x, type = c("diagnostics", "regression",
                                       "PC"), predictor = NULL,
-                          reg.type = c("CRC", "PredLine", "RegScore"), ...){
+                          reg.type = c("PredLine", "RegScore"), ...){
   r <- as.matrix(x$LM$wResiduals)
   f <- as.matrix(x$LM$wFitted)
-  if(!is.null(x$Pcov)) {
+  if(x$LM$gls) {
     r <- as.matrix(x$LM$gls.residuals)
     f <- as.matrix(x$LM$gls.fitted)
   }
   type <- match.arg(type)
   if(is.na(match(type, c("diagnostics", "regression", "PC")))) 
     type <- "diagnostics"
-  CRC <- PL <- Reg.proj <- PC.points <- NULL
+  PL <- Reg.proj <- PC.points <- NULL
   if(type == "diagnostics") {
+    plot.args <- NULL
     pca.r <- prcomp(r)
     var.r <- round(pca.r$sdev^2/sum(pca.r$sdev^2)*100,2)
     plot(pca.r$x, pch=19, asp =1,
@@ -414,67 +424,43 @@ plot.lm.rrpp <- function(x, type = c("diagnostics", "regression",
     p <- ncol(r)
   }
   if(type == "regression"){
+    PL <- prcomp(f)$x[,1]
     reg.type <- match.arg(reg.type)
-    if(is.na(match(reg.type, c("CRC", "PredLine", "RegScore")))) 
+    if(is.na(match(reg.type, c("PredLine", "RegScore")))) 
       if(is.null(predictor))
         stop("This plot type is not available without a predictor.")
     n <- NROW(r); p <- NCOL(r)
     if(!is.vector(predictor)) stop("Predictor must be a vector")
     if(length(predictor) != n) 
       stop("Observations in predictor must equal observations if procD.lm fit")
-    X <- x$LM$X * sqrt(x$LM$weights)
-    if(!is.null(x$LM$Pcov)) B <- x$LM$gls.coefficients else B <- x$LM$coefficients
+
     xc <- predictor
-    pred.match <- sapply(1:NCOL(X), function(j){
-      any(is.na(match(xc, X[,j])))
-    })
-    if(all(pred.match)) {
-      b <- lm(f ~ xc)$coefficients
-      if(is.matrix(b)) b <- b[2,] else b <- b[2]
+    X <- cbind(xc, x$LM$X) * sqrt(x$LM$weights)
+    b <- as.matrix(lm.fit(X, f)$coefficients)[1, ]
+    Reg.proj <- center(x$LM$Y) %*% b %*% sqrt(solve(crossprod(b)))
+    if(reg.type == "RegScore") {
+      plot.args <- list(x = predictor, y = Reg.proj, ylab = "Regression Score", xlab = deparse(substitute(predictor)), ...)
+      do.call(plot, plot.args)
     } else {
-      Xcrc <- as.matrix(X)
-      Xcrc[,!pred.match] <- 0
-      f <- Xcrc %*% B
-      r <- x$LM$Y - f
-      b <- lm(f ~ xc)$coefficients
-      if(is.matrix(b)) b <- b[2,] else b <- b[2]
-    }
-    a <- crossprod(r, xc)/sum(xc^2)
-    a <- a/sqrt(sum(a^2))
-    CRC <- r%*%a  
-    resid <- r%*%(diag(p) - matrix(crossprod(a),p,p))
-    RSC <- prcomp(resid)$x
-    Reg.proj <- x$LM$Y%*%b%*%sqrt(solve(crossprod(b)))
-    PL <- prcomp(f)$x[,1]
-    if(reg.type == "CRC"){
-      par(mfcol = c(1,2))
-      par(mar = c(4,4,1,1))
-      plot(predictor, CRC,  ...)
-      plot(CRC, RSC[,1], asp=1, xlab = "CRC", ylab = "RSC 1", ...)
-      par(mar = c(5,4,4,2) + 0.1)
-      par(mfcol=c(1,1))
-    } else if(reg.type == "RegScore") {
-      plot(predictor, Reg.proj, 
-           ylab = "Regression Score", ...)
-    } else {
-      plot(predictor, PL, 
-           ylab = "PC 1 for fitted values", ...)
+      plot.args <- list(x = predictor, y = PL, ylab = "PC 1 for fitted values", xlab = deparse(substitute(predictor)), ...)
+      do.call(plot, plot.args)
     }
   }
   if(type == "PC"){
     pca <- prcomp(f)
     eigs <- pca$rotation
-    P <- x$LM$Y%*%eigs
+    P <- center(x$LM$Y)%*%eigs
     v <- pca$sdev^2
     ev <- round(v[1:2]/sum(v)*100, 2)
-    plot(P, asp=1,
-         xlab = paste("PC 1 for fitted values: ",ev[1],"%", sep = ""),
-         ylab = paste("PC 2 for fitted values: ",ev[2],"%", sep = ""),
-                      ...)
+    plot.args <- if(NCOL(P) > 1) list(x = P[,1], y = P[,2],  
+                        xlab = paste("PC 1 for fitted values: ",ev[1],"%", sep = "") ,
+                        ylab = paste("PC 2 for fitted values: ",ev[2],"%", sep = "") ,
+                        ...) else list(x = 1:length(P), y = P, xlab = "Index", ylab = "PC 1 for fitted values: 100%",...)
+    do.call(plot, plot.args)
     PC.points <- P
     rownames(P) <- rownames(x$LM$data)
   }
-  out <- list(CRC = CRC, PredLine = PL, RegScore = Reg.proj, PC.points = PC.points)
+  out <- list(PredLine = PL, RegScore = Reg.proj, PC.points = PC.points, plot.args = plot.args)
   invisible(out)
 }
 
@@ -725,7 +711,7 @@ fitted.lm.rrpp <- function(object, weighted = TRUE, ...) {
 #' Print/Summary Function for RRPP
 #'
 #' @param x Object from \code{\link{pairwise}}
-#' @param ... Other arguments passed onto predict.lm.rrpp
+#' @param ... Other arguments passed onto pairwise
 #' @export
 #' @author Michael Collyer
 #' @keywords utilities
@@ -759,7 +745,7 @@ print.pairwise <- function(x, ...){
 #' @param angle.type If test.type = "VC", whether angle results are expressed in radians or degrees.
 #' @param confidence Confidence level to use for upper confidence limit; default = 0.95 (alpha = 0.05)
 #' @param show.vectors Logical value to indicate whether vectors should be printed.
-#' @param ... Other arguments passed onto predict.lm.rrpp
+#' @param ... Other arguments passed onto pairwise
 #' @export
 #' @author Michael Collyer
 #' @keywords utilities
@@ -773,23 +759,107 @@ summary.pairwise <- function(object, stat.table = TRUE,
   if(test.type != "var") {
     if(is.null(x$LS.means)) type = "slopes"
     if(is.null(x$slopes)) type = "means"
-  } else type <- "var"
+  } else {
+    type <- "var"
+    tab <- NULL
+  }
  
-  print.pairwise(x)
-  cat("\n")
-  
   vars <- object$vars
   if(type == "var") {
     var.diff <- lapply(1:NCOL(vars), function(j){
       v <- as.matrix(vars[,j])
       as.matrix(dist(v))
     })
-    L <- d.summary.from.list(var.diff)
+    L <- d.summary.from.list(var.diff, confidence = confidence)
+    tab <- makePWDTable(L)
+  }
+  
+  if(type == "means") {
+    if(test.type == "dist") {
+      L <- d.summary.from.list(x$means.dist, confidence = confidence)
+      if(stat.table) tab <- makePWDTable(L)
+    }
+    
+    if(test.type == "VC") {
+      L <- r.summary.from.list(x$means.vec.cor, confidence = confidence)
+      if(stat.table) {
+        tab <- makePWCorTable(L)
+        if(angle.type == "deg") {
+          options(warn = -1)
+          tab$angle <- tab$angle*180/pi
+          tab[,3] <- tab[,3]*180/pi
+          options(warn = 0)
+        }
+      }
+    }
+  }
+  
+  if(type == "slopes") {
+
+    if(test.type == "dist") {
+      L <- d.summary.from.list(x$slopes.dist)
+      if(stat.table) tab <- makePWDTable(L)
+    }
+    
+    if(test.type == "VC") {
+      L <- r.summary.from.list(x$slopes.vec.cor) 
+      if(stat.table) {
+        tab <- makePWCorTable(L)
+        if(angle.type == "deg") {
+          options(warn = -1)
+          tab$angle <- tab$angle*180/pi
+          tab[,3] <- tab[,3]*180/pi
+          options(warn = -1)
+        }
+      }
+    }
+  }
+  out <- list()
+  out$pairwise.tables <- L
+  if(stat.table){
+    out$stat.table <- TRUE
+    out$summary.table <- tab
+  } else {
+    out$stat.table <- FALSE
+    out$summary.table <- NULL
+  }
+
+  out$type <- type
+  out$test.type <- test.type
+  out$angle.type <- angle.type 
+  out$confidence <- confidence
+  if(!is.null(vars)) out$vars <- vars else out$vars <- NULL
+  out$show.vectors <- show.vectors
+  out$x <- x
+  
+  class(out) <- "summary.pairwise"
+  out
+}
+
+#' Print/Summary Function for RRPP
+#'
+#' @param x Object from \code{\link{summary.pairwise}}
+#' @param ... Other arguments passed onto summary.pairwise
+#' @export
+#' @author Michael Collyer
+#' @keywords utilities
+#' 
+print.summary.pairwise <- function(x, ...) {
+  type <- x$type
+  test.type <- x$test.type
+  stat.table <- x$stat.table
+  print.pairwise(x$x)
+  cat("\n")
+  
+  L <- x$pairwise.tables
+  if(stat.table) tab <- x$summary.table
+
+  if(type == "var") {
+    
     cat("\nObserved variances by group\n\n")
-    print(vars[,1])
+    print(x$vars[,1])
     
     if(stat.table) {
-      tab <- makePWDTable(L)
       cat("\nPairwise distances between variances, plus statistics\n")
       print(tab)
     } else {
@@ -805,13 +875,12 @@ summary.pairwise <- function(object, stat.table = TRUE,
   }
   
   if(type == "means") {
+    
     cat("LS means:\n")
-    if(show.vectors) print(x$LS.means[[1]]) else cat("Vectors hidden (use show.vectors = TRUE to view)\n")
+    if(x$show.vectors) print(x$x$LS.means[[1]]) else cat("Vectors hidden (use show.vectors = TRUE to view)\n")
     
     if(test.type == "dist") {
-      L <- d.summary.from.list(x$means.dist)
       if(stat.table) {
-        tab <- makePWDTable(L)
         cat("\nPairwise distances between means, plus statistics\n")
         print(tab)
       } else {
@@ -827,22 +896,16 @@ summary.pairwise <- function(object, stat.table = TRUE,
     }
     
     if(test.type == "VC") {
-      L <- r.summary.from.list(x$means.vec.cor)
       if(stat.table) {
-        tab <- makePWCorTable(L)
         cat("\nPairwise statistics based on mean vector correlations\n")
-        if(angle.type == "deg") {
-          tab$angle <- tab$angle*180/pi
-          tab[,3] <- tab[,3]*180/pi
-        }
         print(tab)
       } else {
         cat("\nPairwise vector correlations between mean vectors\n")
         print(L$r)
         cat("\nPairwise angles between mean vectors\n")
-        if(angle.type == "deg") print(L$angle*180/pi) else print(L$angle)
+        if(x$angle.type == "deg") print(L$angle*180/pi) else print(L$angle)
         cat("\nPairwise", paste(L$confidence*100, "%", sep=""), "upper confidence limits for angles between mean vectors\n")
-        if(angle.type == "deg") print(L$aCL*180/pi) else print(L$aCL)
+        if(x$angle.type == "deg") print(L$aCL*180/pi) else print(L$aCL)
         cat("\nPairwise effect sizes (Z) for angles between mean vectors\n")
         print(L$Z)
         cat("\nPairwise P-values for angles between mean vectors\n")
@@ -853,14 +916,12 @@ summary.pairwise <- function(object, stat.table = TRUE,
   
   if(type == "slopes") {
     cat("Slopes (vectors of variate change per one unit of covariate change, by group):\n")
-    if(show.vectors) print(x$slopes[[1]]) else cat("Vectors hidden (use show.vectors = TRUE to view)\n")
+    if(x$show.vectors) print(x$x$slopes[[1]]) else cat("Vectors hidden (use show.vectors = TRUE to view)\n")
     
     if(test.type == "dist") {
       cat("\nSlope vector lengths\n")
-      print(x$slopes.length[[1]])
-      L <- d.summary.from.list(x$slopes.dist)
+      print(x$x$slopes.length[[1]])
       if(stat.table) {
-        tab <- makePWDTable(L)
         cat("\nPairwise absolute difference (d) between vector lengths, plus statistics\n")
         print(tab)
       } else {
@@ -876,24 +937,17 @@ summary.pairwise <- function(object, stat.table = TRUE,
     }
     
     if(test.type == "VC") {
-      L <- r.summary.from.list(x$slopes.vec.cor)
       cat("\nPairwise statistics based on slopes vector correlations (r) and angles, acos(r)")
       cat("\nThe null hypothesis is that r = 1 (parallel vectors).")
       cat("\nThis null hypothesis is better treated as the angle between vectors = 0\n")
-      if(stat.table) {
-        tab <- makePWCorTable(L)
-        if(angle.type == "deg") {
-          tab$angle <- tab$angle*180/pi
-          tab[,3] <- tab[,3]*180/pi
-        }
-        print(tab)
-      } else {
+      if(stat.table) print(tab)
+        else {
         cat("\nPairwise vector correlations between slope vectors\n")
         print(L$r)
         cat("\nPairwise angles between slope vectors\n")
-        if(angle.type == "deg") print(L$angle*180/pi) else print(L$angle)
+        if(x$angle.type == "deg") print(L$angle*180/pi) else print(L$angle)
         cat("\nPairwise", paste(L$confidence*100, "%", sep=""), "upper confidence limits for angles between mean vectors\n")
-        if(angle.type == "deg") print(L$aCL*180/pi) else print(L$aCL)
+        if(x$angle.type == "deg") print(L$aCL*180/pi) else print(L$aCL)
         cat("\nPairwise effect sizes (Z) for angles between slope vectors\n")
         print(L$Z)
         cat("\nPairwise P-values for angles between slope vectors\n")
@@ -901,7 +955,9 @@ summary.pairwise <- function(object, stat.table = TRUE,
       }
     }
   }
+  invisible(x)
 }
+
 
 #' Print/Summary Function for RRPP
 #'
@@ -1007,3 +1063,566 @@ plot.model.comparison <- function(x, ...){
   abline(f, lty = 3, lwd = 0.8, col = "red")
   text(x, y, nms, pos = 1, cex = 0.4)
 }
+
+#' Print/Summary Function for RRPP
+#'
+#' @param object Object from \code{\link{lm.rrpp}}, updated with \code{\link{manova.update}}
+#' @param test Type of multivariate test statistic to use.
+#' @param ... Other arguments passed onto manova.lm.rrpp
+#' @export
+#' @author Michael Collyer
+#' @keywords utilities
+summary.manova.lm.rrpp <- function(object, test = c("Roy", "Pillai", "Hotelling-Lawley", "Wilks"), ...){
+  if (!inherits(object, "manova.lm.rrpp")) 
+    stop(gettextf("object must be of class %s", dQuote("manova.lm.rrpp"), domain = NA))
+  test <- match.arg(test)
+  if(test == "Hotelling-Lawley") test <- "Hotelling.Lawley"
+  p <- object$LM$p
+  p.prime <- object$LM$p.prime
+  n <- object$LM$n
+  perm.method <- object$PermInfo$perm.method
+  if(perm.method == "RRPP") RRPP = TRUE else RRPP = FALSE
+  ind <- object$PermInfo$perm.schedule
+  trms <- object$LM$term.labels
+  k <- length(trms)
+  df <- object$ANOVA$df
+  df.model <- sum(df[1:k])
+  df <- c(df[1:k], df.model, df[k+1])
+  names(df) <- c(trms, "Full.Model", "Residuals")
+  
+  MANOVA <- object$MANOVA
+  if(MANOVA$verbose) {
+    
+    getEigs <- function(EH, EH.rank){
+      r <- min(dim(na.omit(EH)))
+      EH <- EH[1:r, 1:r]
+      Re(eigen(EH, symmetric = FALSE, only.values = TRUE)$values)[1:EH.rank]
+    }
+    
+    eigs <- lapply(1:(k+1), function(j){
+      rh <- MANOVA$invR.H[[j]]
+      rh.rank <- qr(rh[[1]])$rank
+      lapply(rh, function(x) getEigs(x, rh.rank))
+    })
+  } else eigs <- MANOVA$eigs
+  
+  error <- MANOVA$error
+  
+  
+  stats <- as.data.frame(matrix(NA, nrow = k + 2, ncol = 5, byrow = FALSE,
+                                dimnames <- list(names(df), 
+                                                 c("Df", "Rand", test, "Z", "Pr"))))
+  stats$Df <- df
+  if(!is.null(error)) stats$Rand[1:(k+1)] <- c(error, "Residuals") else stats$Rand[1:(k+1)] <- rep("Residuals", k+1)
+  
+  if(test == "Pillai") {
+    
+    rand.stats <- sapply(1:(k+1), function(j){
+      y <- eigs[[j]]
+      sapply(y, pillai)
+    })
+    colnames(rand.stats) <- c(trms, "Full.Model")
+    test.stats <- rand.stats[1,]
+    Z <- apply(log(rand.stats), 2, effect.size)
+    P <- apply(rand.stats, 2, pval)
+    stats$Z[1:(k+1)] <- Z
+    stats$Pr[1:(k+1)] <- P
+    stats$Pillai[1:(k+1)] <- test.stats
+  }
+  else if(test == "Hotelling.Lawley") {
+    
+    rand.stats <- sapply(1:(k+1), function(j){
+      y <- eigs[[j]]
+      sapply(y, hot.law)
+    })
+    colnames(rand.stats) <- c(trms, "Full.Model")
+    test.stats <- rand.stats[1,]
+    Z <- apply(log(rand.stats), 2, effect.size)
+    P <- apply(rand.stats, 2, pval)
+    stats$Z[1:(k+1)] <- Z
+    stats$Pr[1:(k+1)] <- P
+    stats$Hotelling.Lawley[1:(k+1)] <- test.stats
+  }
+  
+  else if(test == "Wilks"){
+    
+    rand.stats <- sapply(1:(k+1), function(j){
+      y <- eigs[[j]]
+      sapply(y, wilks)
+    })
+    colnames(rand.stats) <- c(trms, "Full.Model")
+    test.stats <- rand.stats[1,]
+    Z <- apply(log(rand.stats), 2, effect.size)
+    P <- apply(1 - rand.stats, 2, pval)
+    stats$Z[1:(k+1)] <- Z
+    stats$Pr[1:(k+1)] <- P
+    stats$Wilks[1:(k+1)] <- test.stats
+  }
+  else {
+    rand.stats <- sapply(1:(k+1), function(j){
+      y <- eigs[[j]]
+      sapply(y, max)
+    })
+    colnames(rand.stats) <- c(trms, "Full.Model")
+    test.stats <- rand.stats[1,]
+    Z <- apply(log(rand.stats), 2, effect.size)
+    P <- apply(rand.stats, 2, pval)
+    stats$Z[1:(k+1)] <- Z
+    stats$Pr[1:(k+1)] <- P
+    stats$Roy[1:(k+1)] <- test.stats
+  }
+  
+  if(test == "Wilks") names(stats)[[length(stats)]] <- paste("Pr(<", test, ")", sep = "") else
+    names(stats)[[length(stats)]] <- paste("Pr(>", test, ")", sep = "")
+  
+  out <- list(stats.table = stats, rand.stats = rand.stats, stat.type = test,
+              n = n, p = p, p.prime = p.prime, e.rank = MANOVA$e.rank, 
+              manova.pc.dims = MANOVA$manova.pc.dims, PCA = MANOVA$PCA,
+              SS.type = object$ANOVA$SS.type, perms = object$PermInfo$perms)
+  class(out) <- "summary.manova.lm.rrpp"
+  out
+}
+
+#' Print/Summary Function for RRPP
+#'
+#' @param x Object from \code{\link{summary.manova.lm.rrpp}}
+#' @param ... Other arguments passed onto summary.manova.lm.rrpp
+#' @export
+#' @author Michael Collyer
+#' @keywords utilities
+print.summary.manova.lm.rrpp <- function(x, ...){
+  
+  cat("\nLinear Model fit with lm.rrpp\n")
+  cat(paste("\nNumber of observations:", x$n))
+  cat("\nNumber of dependent variables:", x$p)
+  cat("\nData space dimensions:", x$p.prime)
+  cat("\nResidual covariance matrix rank:", x$e.rank)
+  pc.max <- max(x$manova.pc.dims)
+  
+  if(pc.max < x$e.rank) {
+    cat("\n   Data reduced to", pc.max, "PCs, as required or prescribed.")
+    PCA <- x$PCA
+    d2 <- PCA$sdev^2
+    d.p <- sum(d2[1:pc.max])/sum(d2)
+    cat("\n  ", round(d.p*100, 1), "% of overall variation explained by these PCs.")
+    cat("\n   See $MANOVA$PCA from manova.lm.rrpp object for more information.")
+  }
+    
+  if(!is.null(x$SS.type)) cat(paste("\nSums of Squares and Cross-products: Type", x$SS.type))
+  cat(paste("\nNumber of permutations:", x$perms), "\n\n")
+  
+  tab <- as.matrix(x$stats.table)
+  print.table(tab, na.print = "")
+  invisible(x)
+}
+
+
+#' Print/Summary Function for RRPP
+#'
+#' @param x Object from \code{\link{trajectory.analysis}}
+#' @param ... Other arguments passed onto 
+#' @export
+#' @author Michael Collyer
+#' @keywords utilities
+print.trajectory.analysis<- function(x, ...){
+  if(is.null(x$SD)) type = "vectors" else type = "trajectories"
+  perms <- length(x$MD)
+  pca = x$pca
+  groups <- rownames(x$LS.means[[1]])
+  pca <- x$pca
+  cat("\nTrajectory analysis\n\n")
+  cat(perms, "permutations.\n\n")
+  if(!is.null(pca)) cat("Points projected onto trajectory PCs\n")
+  
+}
+
+#' Print/Summary Function for RRPP
+#'
+#' @param object Object from \code{\link{trajectory.analysis}}
+#' @param stat.table Logical argument for whether results should be returned in one table 
+#' (if TRUE) or separate pairwise tables (if FALSE)
+#' @param attribute Whether magnitude differences (MD, absolute difference in trajectory path lengths), 
+#' trajectory correlations (TC), or trajectory shape differences (SD) are summarized.
+#' @param angle.type If attribute = "TC", whether angle results are expressed in radians or degrees.
+#' @param confidence Confidence level to use for upper confidence limit; default = 0.95 (alpha = 0.05)
+#' @param show.trajectories Logical value to indicate whether trajectories should be printed.
+#' @param ... Other arguments passed onto trajectory.analysis
+#' @export
+#' @author Michael Collyer
+#' @keywords utilities
+summary.trajectory.analysis <- function(object, stat.table = TRUE, 
+                             attribute = c("MD", "TC", "SD"),
+                             angle.type = c("rad", "deg"),
+                             confidence = 0.95, show.trajectories = FALSE, ...) {
+  
+  attribute <- match.arg(attribute)
+  angle.type <- match.arg(angle.type)
+  x <- object
+  if(is.null(x$SD)) type = "vectors" else type = "trajectories"
+  
+  MD <- object$MD
+  TC <- object$TC
+  SD <- object$SD
+  
+  if(attribute == "MD"){
+    L <- d.summary.from.list(MD, confidence = confidence)
+    tab <- makePWDTable(L)
+  }
+  
+  if(attribute == "TC"){
+    L <- r.summary.from.list(TC, confidence = confidence)
+    tab <- makePWCorTable(L)
+    if(angle.type == "deg") {
+      options(warn = -1)
+      tab$angle <- tab$angle*180/pi
+      tab[,3] <- tab[,3]*180/pi
+      options(warn = -1)
+    }
+  }
+  
+  if(attribute == "SD"){
+    if(type == "trajectories") {
+      L <- d.summary.from.list(SD, confidence = confidence)
+      tab <- makePWDTable(L)
+    } else {
+      L <- NULL
+      tab <- NULL
+    }
+  }
+  
+ 
+  out <- list()
+  out$pairwise.tables <- L
+  if(stat.table){
+    out$stat.table <- TRUE
+    out$summary.table <- tab
+  } else {
+    out$stat.table <- FALSE
+    out$summary.table <- NULL
+  }
+  
+  out$type <- type
+  out$attribute <- attribute
+  out$angle.type <- angle.type 
+  out$confidence <- confidence
+  out$show.trajectories <- show.trajectories
+  out$x <- x
+  
+  class(out) <- "summary.trajectory.analysis"
+  out
+}
+
+#' Print/Summary Function for RRPP
+#'
+#' @param x Object from \code{\link{summary.trajectory.analysis}}
+#' @param ... Other arguments passed onto summary.trajectory.analysis
+#' @export
+#' @author Michael Collyer
+#' @keywords utilities
+#' 
+print.summary.trajectory.analysis <- function(x, ...) {
+  attribute <- x$attribute
+  type <- x$type
+  if(attribute == "SD" && type == "vectors") 
+    cat("\n\nCannot summarize trajectory shape differences for vectors.\n\n")
+  stat.table <- x$stat.table
+  if(attribute != "SD") print.trajectory.analysis(x$x) else 
+    if(type == "trajectories") print.trajectory.analysis(x$x)
+
+  cat("\n")
+  
+  L <- x$pairwise.tables
+  if(stat.table) tab <- x$summary.table
+  
+  if(attribute == "MD") {
+    
+    cat("Trajectories:\n")
+    if(x$show.trajectories) print(x$x$trajectories[[1]]) else cat("Trajectories hidden (use show.trajectories = TRUE to view)\n")
+    
+    cat("\nObserved path distances by group\n\n")
+    print(x$x$PD[[1]])
+    
+    if(stat.table) {
+      cat("\nPairwise absolute differences in path distances, plus statistics\n")
+      print(tab)
+    } else {
+      cat("\nPairwise absolute differences in path distancess\n")
+      print(L$D)
+      cat("\nPairwise", paste(L$confidence*100, "%", sep=""), "upper confidence limits, absolute differences in path distancess\n")
+      print(L$CL)
+      cat("\nPairwise effect sizes (Z) for absolute differences in path distancess\n")
+      print(L$Z)
+      cat("\nPairwise P-values for absolute differences in path distances\n")
+      print(L$P)
+    }
+  }
+  
+  if(attribute == "TC") {
+    
+    cat("Trajectories:\n")
+    if(x$show.trajectories) print(x$x$trajectories[[1]]) else cat("Trajectories hidden (use show.trajectories = TRUE to view)\n")
+    
+    if(stat.table) {
+      cat("\nPairwise correlations between trajectories, plus statistics\n")
+      print(tab)
+    } else {
+      cat("\nPairwise statistics based on trajectory vector correlations (r) and angles, acos(r)")
+      cat("\nThe null hypothesis is that r = 1 (parallel vectors).")
+      cat("\nThis null hypothesis is better treated as the angle between vectors = 0\n")
+      
+      cat("\nPairwise vector correlations between trajectories\n")
+      print(L$r)
+      cat("\nPairwise angles between trajectories\n")
+      if(x$angle.type == "deg") print(L$angle*180/pi) else print(L$angle)
+      cat("\nPairwise", paste(L$confidence*100, "%", sep=""), "upper confidence limits for angles\n")
+      if(x$angle.type == "deg") print(L$aCL*180/pi) else print(L$aCL)
+      cat("\nPairwise effect sizes (Z) for angles\n")
+      print(L$Z)
+      cat("\nPairwise P-values for angles\n")
+      print(L$P)
+    }
+  }
+  
+  if(type == "trajectories"  && attribute == "SD") {
+    
+    cat("Trajectories:\n")
+    if(x$show.trajectories) print(x$x$trajectories[[1]]) else cat("Trajectories hidden (use show.trajectories = TRUE to view)\n")
+
+    if(stat.table) {
+      cat("\nPairwise trajectory shape differences, plus statistics\n")
+      print(tab)
+    } else {
+      cat("\nPairwise trajectory shape differences\n")
+      print(L$D)
+      cat("\nPairwise", paste(L$confidence*100, "%", sep=""), "upper confidence limits, shape differnces\n")
+      print(L$CL)
+      cat("\nPairwise effect sizes (Z) for trajectory shape differencess\n")
+      print(L$Z)
+      cat("\nPairwise P-values for trajectory shape differences\n")
+      print(L$P)
+    }
+  }
+  
+  cat("\n\n")
+    
+  invisible(x)
+}
+
+
+#' Plot Function for RRPP
+#' 
+#'  Function generates a principal component plot for trajectories
+#'
+#'  The function calculates and plots principal components of fitted values from 
+#'  \code{\link{lm.rrpp}} that are passed onto \code{\link{trajectory.analysis}}, and projects
+#'  data onto them.  This function is a set.up, and \code{\link{add.trajectories}} is needed to 
+#'  add trajectories to the plot.  By having two stages of control, the plotting functions are more 
+#'  flexible.  This function also returns plotting information that can be valuable for making
+#'  individualized plots, if \code{\link{add.trajectories}} is not preferred.
+#' @param x plot object (from \code{\link{trajectory.analysis}})
+#' @param ... other arguments passed to plot (helpful to employ
+#' different colors or symbols for different groups).  See
+#' \code{\link{plot.default}} and \code{\link{par}}
+#' 
+#' @return If an object is assigned, it will return:
+#'  \item{pca}{Principal component analysis performed using \code{\link{prcomp}}.}
+#'  \item{pc.points}{Principal component scores for all data.}
+#'  \item{trajectory.analysis}{Trajectory analysis passed on.}
+#'  \item{trajectories}{pca Observed trajectories projected onto principal components.}
+#'  
+#' @seealso 
+#' \code{\link{plot.default}} and \code{\link{par}}
+#' @export
+#' @author Michael Collyer
+#' @keywords utilities
+#' @keywords visualization
+#' @references Adams, D. C., and M. M. Cerney. 2007. Quantifying biomechanical motion using Procrustes 
+#'   motion analysis. J. Biomech. 40:437-444.
+#' @references Adams, D. C., and M. L. Collyer. 2007. The analysis of character divergence along environmental 
+#'   gradients and other covariates. Evolution 61:510-515.
+#' @references Adams, D. C., and M. L. Collyer. 2009. A general framework for the analysis of phenotypic 
+#'   trajectories in evolutionary studies. Evolution 63:1143-1154.
+#' @references Collyer, M. L., and D. C. Adams. 2007. Analysis of two-state multivariate phenotypic change 
+#'   in ecological studies. Ecology 88:683-692.
+#' @references Collyer, M. L., and D. C. Adams. 2013. Phenotypic trajectory analysis: comparison of shape change patterns 
+#' in evolution and ecology. Hystrix 24: 75-83.
+#' @references Collyer, M.L., D.J. Sekora, and D.C. Adams. 2015. A method for analysis of phenotypic change for phenotypes described 
+#' by high-dimensional data. Heredity. 115:357-365.
+#' 
+#' @examples 
+#' # See \code{\link{trajectory.analysis}} for examples
+plot.trajectory.analysis <- function(x, ...) {
+  
+  if(!is.null(x$pca)) {
+    pca <- x$pca
+    rot <- pca$rotation
+    Y <- x$fit$LM$Y
+    props <- pca$sdev^2 / sum(pca$sdev^2)
+    pc.points <- center(Y) %*% rot
+    trajectories <- x$trajectories[[1]]
+  }
+  
+  if(is.null(x$pca) && x$type == "factorial") {
+    f <- if(x$fit$LM$gls) x$fit$LM$gls.fitted else x$fit$LM$wFitted
+    pca <- prcomp(f)
+    rot <- pca$rotation
+    Y <- x$fit$LM$Y
+    Y.cent <- colMeans(Y)
+    props <- pca$sdev^2 / sum(pca$sdev^2)
+    pc.points <- center(Y) %*% rot
+    trajectories <- x$trajectories[[1]]
+    if(is.matrix(trajectories)) trajectories <- list(trajectories)
+    traj.c <- matrix(Y.cent, NROW(trajectories[[1]]), NCOL(trajectories[[1]]), byrow = TRUE)
+    trajectories <- lapply(trajectories, function(x) (x - traj.c) %*% rot)
+  }
+  
+  if(x$type == "single.factor") {
+    f <- if(x$fit$LM$gls) x$fit$LM$gls.fitted else x$fit$LM$wFitted
+    tp <- x$n.points
+    p <- NCOL(f)/tp
+    n <- NROW(f)
+    ft <- array(f, c(n, p, tp))
+    ft2 <- ft[,,1]
+    for(i in 2:tp) ft2 <- rbind(ft2, ft[,,i])
+    pca <- prcomp(ft2)
+    rot <- pca$rotation
+    Y <- x$fit$LM$Y
+    Y2 <- array(Y, c(n, p, tp))
+    Y <- Y2[,,1]
+    for(i in 2:tp) Y <- rbind(Y, Y2[,,i])
+    Y.cent <- colMeans(Y)
+    props <- pca$sdev^2 / sum(pca$sdev^2)
+    pc.points <- center(Y) %*% rot
+    trajectories <- x$trajectories[[1]]
+    if(is.matrix(trajectories)) trajectories <- list(trajectories)
+    traj.c <- matrix(Y.cent, NROW(trajectories[[1]]), 
+                     NCOL(trajectories[[1]]), byrow = TRUE)
+    trajectories <- lapply(trajectories, function(x) (x - traj.c) %*% rot)
+  }
+  
+  
+  dots <- list(...)
+  if(is.null(dots$xlab))
+    xlabel <- paste("PC 1 for fitted values: ", round(props[1] *100, 2), "%", sep = "")
+  if(is.null(dots$ylab))
+    ylabel <- paste("PC 2 for fitted values: ", round(props[2] *100, 2), "%", sep = "")
+  
+  if(!is.null(dots$xlab) && !is.null(dots$ylab)) plot(pc.points[,1], pc.points[,2], asp = 1, ...)
+  if(!is.null(dots$xlab) && is.null(dots$ylab)) plot(pc.points[,1], pc.points[,2], asp = 1, ylab = ylabel, ...)
+  if(is.null(dots$xlab) && !is.null(dots$ylab)) plot(pc.points[,1], pc.points[,2], asp = 1, xlab = xlabel, ...)
+  if(is.null(dots$xlab) && is.null(dots$ylab))
+    plot(pc.points[,1], pc.points[,2], asp = 1, xlab = xlabel, ylab = ylabel, ...)
+  out <- list(pca = pca, pc.points = pc.points, trajectoy.analysis = x, trajectories = trajectories)
+  invisible(out)
+}
+
+#' Plot Function for RRPP
+#' 
+#'  Function adds trajectories to a principal component plot
+#'
+#'  The function adds trajectories to a plot made by \code{\link{plot.trajectory.analysis}}.
+#'  This function has a restricted set of plot parameters based on the number of trajectories
+#'  to be added to the plot.
+#'  
+#' @param TP plot object (from \code{\link{plot.trajectory.analysis}})
+#' @param traj.pch Plotting "character" for trajectory points.  Can be a single value or vector 
+#' of length equal to the number of trajectories.  See \code{\link{par}} and its description 
+#' for pch.
+#' @param traj.col The color of trajectory lines.  Can be a single value or vector 
+#' of length equal to the number of trajectories.  See \code{\link{par}} and its description 
+#' for col.
+#' @param traj.lty Trajectory line type.  Can be a single value or vector 
+#' of length equal to the number of trajectories.  See \code{\link{par}} and its description 
+#' for lty.
+#' @param traj.lwd Trajectory line width.  Can be a single value or vector 
+#' of length equal to the number of trajectories.  See \code{\link{par}} and its description 
+#' for lwd.
+#' @param traj.cex Trajectory point character expansion.  Can be a single value or vector 
+#' of length equal to the number of trajectories.  See \code{\link{par}} and its description 
+#' for cex.
+#' @param traj.bg Trajectory point background.  Can be a single value or vector 
+#' of length equal to the number of trajectories.  See \code{\link{par}} and its description 
+#' for bg.
+#' @param start.bg Trajectory point background, just the start points.  Can be a single value or vector 
+#' of length equal to the number of trajectories.  See \code{\link{par}} and its description 
+#' for bg.  Green start points are the default.
+#' @param end.bg Trajectory point background, just the end points.  Can be a single value or vector 
+#' of length equal to the number of trajectories.  See \code{\link{par}} and its description 
+#' for bg.  Red end points are the default.
+#' 
+#' @seealso 
+#' \code{\link{plot.default}} and \code{\link{par}}
+#' @export
+#' @author Michael Collyer
+#' @keywords utilities
+#' @keywords visualization
+#' @references Adams, D. C., and M. M. Cerney. 2007. Quantifying biomechanical motion using Procrustes 
+#'   motion analysis. J. Biomech. 40:437-444.
+#' @references Adams, D. C., and M. L. Collyer. 2007. The analysis of character divergence along environmental 
+#'   gradients and other covariates. Evolution 61:510-515.
+#' @references Adams, D. C., and M. L. Collyer. 2009. A general framework for the analysis of phenotypic 
+#'   trajectories in evolutionary studies. Evolution 63:1143-1154.
+#' @references Collyer, M. L., and D. C. Adams. 2007. Analysis of two-state multivariate phenotypic change 
+#'   in ecological studies. Ecology 88:683-692.
+#' @references Collyer, M. L., and D. C. Adams. 2013. Phenotypic trajectory analysis: comparison of shape change patterns 
+#' in evolution and ecology. Hystrix 24: 75-83.
+#' @references Collyer, M.L., D.J. Sekora, and D.C. Adams. 2015. A method for analysis of phenotypic change for phenotypes described 
+#' by high-dimensional data. Heredity. 115:357-365.
+add.trajectories <- function(TP, 
+                             traj.pch = 21,
+                             traj.col = 1,
+                             traj.lty = 1,
+                             traj.lwd = 1,
+                             traj.cex = 1.5,
+                             traj.bg = 1,
+                             start.bg = 3,
+                             end.bg = 2) {
+  
+  traj <- TP$trajectories
+  nt <- length(traj)
+  np <- NROW(traj[[1]])
+  
+  if(length(traj.pch) != 1 && length(traj.pch) != nt)
+    stop("For add.trajectories, traj.pch must be equal in length to the number of trajectories or just one value\n",
+         call. = FALSE) else if(length(traj.pch) == 1) traj.pch <- rep(traj.pch, nt)
+  
+  if(length(traj.col) != 1 && length(traj.col) != nt)
+    stop("For add.trajectories, traj.col must be equal in length to the number of trajectories or just one value\n",
+         call. = FALSE) else if(length(traj.col) == 1) traj.col <- rep(traj.col, nt)
+  
+  if(length(traj.lty) != 1 && length(traj.lty) != nt)
+    stop("For add.trajectories, traj.lty must be equal in length to the number of trajectories or just one value\n",
+         call. = FALSE) else if(length(traj.lty) == 1) traj.lty <- rep(traj.lty, nt)
+  
+  if(length(traj.lwd) != 1 && length(traj.lwd) != nt)
+    stop("For add.trajectories, traj.lwd must be equal in length to the number of trajectories or just one value\n",
+         call. = FALSE) else if(length(traj.lwd) == 1) traj.lwd <- rep(traj.lwd, nt)
+  
+  if(length(traj.cex) != 1 && length(traj.cex) != nt)
+    stop("For add.trajectories, traj.cex must be equal in length to the number of trajectories or just one value\n",
+         call. = FALSE) else if(length(traj.cex) == 1) traj.cex <- rep(traj.cex, nt)
+  
+  if(length(traj.bg) != 1 && length(traj.bg) != nt)
+    stop("For add.trajectories, traj.bg must be equal in length to the number of trajectories or just one value\n",
+         call. = FALSE) else if(length(traj.bg) == 1) traj.bg <- rep(traj.bg, nt)
+  
+  if(length(start.bg) != 1 && length(start.bg) != nt)
+    stop("For add.trajectories, start.bg must be equal in length to the number of trajectories or just one value\n",
+         call. = FALSE) else if(length(start.bg) == 1) start.bg<- rep(start.bg, nt)
+  
+  if(length(end.bg) != 1 && length(end.bg) != nt)
+    stop("For add.trajectories, end.bg must be equal in length to the number of trajectories or just one value\n",
+         call. = FALSE) else if(length(end.bg) == 1) end.bg<- rep(end.bg, nt)     
+  
+  for(i in 1:nt){
+    x <- traj[[i]][,1]
+    y <- traj[[i]][,2]
+    lines(x, y, col = traj.col[i], lwd = traj.lwd[i], lty = traj.lty[i])
+    points(x, y, col = 1, pch = traj.pch[i], lwd = traj.lwd[i], cex = traj.cex[i], bg = traj.bg[i])
+    points(x[1], y[1], col = 1, pch = traj.pch[i], lwd = traj.lwd[i], cex = traj.cex[i], bg = start.bg[i])
+    points(x[np], y[np], col = 1, pch = traj.pch[i], lwd = traj.lwd[i], cex = traj.cex[i], bg = end.bg[i])
+  }
+  
+  
+}
+

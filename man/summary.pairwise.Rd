@@ -4,9 +4,9 @@
 \alias{summary.pairwise}
 \title{Print/Summary Function for RRPP}
 \usage{
-\method{summary}{pairwise}(object, stat.table = TRUE, test.type = c("dist",
-  "VC", "var"), angle.type = c("rad", "deg"), confidence = 0.95,
-  show.vectors = FALSE, ...)
+\method{summary}{pairwise}(object, stat.table = TRUE,
+  test.type = c("dist", "VC", "var"), angle.type = c("rad", "deg"),
+  confidence = 0.95, show.vectors = FALSE, ...)
 }
 \arguments{
 \item{object}{Object from \code{\link{pairwise}}}
@@ -23,7 +23,7 @@ should be used in the test.}
 
 \item{show.vectors}{Logical value to indicate whether vectors should be printed.}
 
-\item{...}{Other arguments passed onto predict.lm.rrpp}
+\item{...}{Other arguments passed onto pairwise}
 }
 \description{
 Print/Summary Function for RRPP
