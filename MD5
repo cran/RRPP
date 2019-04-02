@@ -1,8 +1,8 @@
-c61b32bca7c843d14e1dca54d0d54206 *DESCRIPTION
+ab1a9caa1b3e8948af05e7ffef476945 *DESCRIPTION
 8dd28dfe65e0542561bc6096514f7d94 *NAMESPACE
-1c55b96d6d3a3da38cf557475d2aad6c *NEWS
-ee6bd34491c3f37d6c3e41c45f99264b *R/RRPP.support.code.r
-c0eee4e511568498896d258ac95a9408 *R/RRPP.utils.r
+9a396c4f44f5efddf10ff373244c8568 *NEWS
+6d0c9e5b4a18cc71755cff9aa3342fb1 *R/RRPP.support.code.r
+be98708421cdb7cafd31b822f7b6de5c *R/RRPP.utils.r
 262059f161b3a6bef292cdd97fc9c414 *R/anova.lm.rrpp.r
 c2cda15833b34d15cbc97c9cd4530666 *R/classify.r
 52536f21f7ea4cdcfa3ebfe15b4ffbac *R/coef.lm.rrpp.r
@@ -23,10 +23,10 @@ b7ceda4ee18eb3d0d3f966360dc02936 *data/PupfishHeads.rda
 4b9ec9953a6af5354c47d2f9c8ff5922 *inst/CITATION
 d16062cf59bdc27c9af73c5e4280c9e2 *inst/doc/ANOVA.vs.MANOVA.R
 070e9a22fe4f8a290a46ac3598513879 *inst/doc/ANOVA.vs.MANOVA.Rmd
-d2ed65c3eeba3b2b95d9315d0dde4130 *inst/doc/ANOVA.vs.MANOVA.html
+b456b41681e5918157c4bc0579553fca *inst/doc/ANOVA.vs.MANOVA.html
 0e482efe02b456ba5d259e8a514c8540 *inst/doc/Using.RRPP.R
 6f61ac0efa7dab47ce7dd5f7b3401c82 *inst/doc/Using.RRPP.Rmd
-354d96c408373ebde67a983c36797ff6 *inst/doc/Using.RRPP.html
+6084db048c75e5f71b3620804674b29c *inst/doc/Using.RRPP.html
 4ba4f9fdbeffa3718c5c2bca0db78ad2 *man/PlethMorph.Rd
 e5e2cd45f97a0c4c65e797242f5588db *man/Pupfish.Rd
 3fe4d32c24afeeef0ec8dbecdd9d60ba *man/PupfishHeads.Rd
