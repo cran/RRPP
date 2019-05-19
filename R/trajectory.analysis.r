@@ -67,9 +67,10 @@
 #' @examples 
 #' ### Analysis of sexual dimorphism vectors (factorial approach)
 #' data(Pupfish)
-#' fit <- lm.rrpp(coords ~ Pop * Sex, data = Pupfish, iter = 999)
+#' fit <- lm.rrpp(coords ~ Pop * Sex, data = Pupfish, iter = 199)
 #' reveal.model.designs(fit)
-#' TA <- trajectory.analysis(fit, groups = Pupfish$Pop, traj.pts = Pupfish$Sex)
+#' TA <- trajectory.analysis(fit, groups = Pupfish$Pop, 
+#' traj.pts = Pupfish$Sex, print.progress = FALSE)
 #' summary(TA, attribute = "MD") # Magnitude difference (absolute difference between path distances)
 #' summary(TA, attribute = "TC", angle.type = "deg") # Correlations (angles) between trajectories
 #' summary(TA, attribute = "SD") # No shape differences between vectors
@@ -88,7 +89,7 @@
 #' 
 #' # data are planar Cartesian coordinates (x, y) across 5 points (10 variables)
 #' data(motionpaths)
-#' fit <- lm.rrpp(trajectories ~ groups, data = motionpaths, iter = 999)
+#' fit <- lm.rrpp(trajectories ~ groups, data = motionpaths, iter = 199)
 #' TA <- trajectory.analysis(fit, groups = motionpaths$groups, traj.pts = 5)
 #' summary(TA, attribute = "MD") # Magnitude difference (absolute difference between path distances)
 #' summary(TA, attribute = "TC", angle.type = "deg") # Correlations (angles) between trajectories
@@ -120,7 +121,7 @@ trajectory.analysis <- function(fit, fit.null = NULL, groups,
       p <- levels(g2)
     }
   }
-  g1 <- groups
+  g1 <- as.factor(groups)
   
   if(!is.null(g2) && NCOL(g2) > 1) stop("traj.pts can be either a single value or a factor, not a matrix.\n",
                         call. = FALSE)
@@ -129,7 +130,7 @@ trajectory.analysis <- function(fit, fit.null = NULL, groups,
   if(length(g1) != n)stop("The number of observations does not match group length.\n",
                           call. = FALSE)
   
-  if(is.null(tp)) groups <- interaction(g1, g2) else groups <- g1
+  if(is.null(tp)) groups <- interaction(g1, g2, lex.order = TRUE) else groups <- g1
   
   if(is.null(fit.null)) 
   PW <- pairwise(fit, fit.null, groups, covariate = NULL, print.progress = FALSE) else 
@@ -165,7 +166,11 @@ trajectory.analysis <- function(fit, fit.null = NULL, groups,
   if(is.null(tp)) {
     gl <- levels(g1)
     traj.list <- list()
-    for(i in 1:length(gl)) traj.list[[i]] <- grep(gl[i], rownames(means[[1]]))
+    nt <- nrow(means[[1]])
+    tpts <-  nt / length(gl)
+    start <- seq(1, nt - tpts + 1, tpts)
+    end <- seq(tpts, nt, tpts)
+    for(i in 1:length(gl)) traj.list[[i]] <- seq(start[i], end[i], 1)
     names(traj.list) <- gl
     
     trajectories <- lapply(1:perms, function(j){
