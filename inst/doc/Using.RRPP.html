@@ -11,7 +11,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 
-<meta name="date" content="2019-05-19" />
+<meta name="date" content="2019-10-07" />
 
 <title>Using RRPP</title>
 
@@ -301,7 +301,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 
 
 <h1 class="title toc-ignore">Using RRPP</h1>
-<h4 class="date">2019-05-19</h4>
+<h4 class="date">2019-10-07</h4>
 
 
 
@@ -433,14 +433,14 @@ PlethMorph (Adams &amp; Collyer, 2018)</code></pre>
 ## Effect sizes (Z) based on F distributions
 ## 
 ##                                   ResDf Df    RSS      SS      MS      Rsq
-## logHeadSize ~ sex (Null)            266  1 13.058                 0.044568
-## logHeadSize ~ sex + locality        265  1 12.587 0.47121 0.47121 0.079045
-## logHeadSize ~ sex + locality/year   259  7 10.949 2.10907 0.30130 0.198885
+## logHeadSize ~ sex (Null)            266  1 13.058                 0.000000
+## logHeadSize ~ sex + locality        265  1 12.587 0.47121 0.47121 0.034478
+## logHeadSize ~ sex + locality/year   259  7 10.949 2.10907 0.30130 0.154318
 ## Total                               267    13.667                         
 ##                                        F      Z     P Pr(&gt;F)
 ## logHeadSize ~ sex (Null)                                    
-## logHeadSize ~ sex + locality      9.9207 1.6839 0.003       
-## logHeadSize ~ sex + locality/year 7.1273 3.6596 0.001       
+## logHeadSize ~ sex + locality      9.9207 1.6623 0.004       
+## logHeadSize ~ sex + locality/year 7.1273 3.5804 0.001       
 ## Total</code></pre>
 <p>One might wish to also look at individual model coefficients, and ascertain which have the largest effect:</p>
 <div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb15-1" data-line-number="1"><span class="kw">coef</span>(fit, <span class="dt">test =</span> <span class="ot">TRUE</span>)</a></code></pre></div>
@@ -814,9 +814,9 @@ PlethMorph (Adams &amp; Collyer, 2018)</code></pre>
 ## coords ~ logSize + Sex * Pop (Null)    49  1 0.024084                     
 ## coords ~ logSize * Sex * Pop           46  3 0.022079 0.0020045 0.00066816
 ## Total                                  53    0.056333                     
-##                                         Rsq      F      Z     P Pr(&gt;F)
-## coords ~ logSize + Sex * Pop (Null) 0.57247                           
-## coords ~ logSize * Sex * Pop        0.60806 1.3921 3.8582 0.001       
+##                                          Rsq      F      Z     P Pr(&gt;F)
+## coords ~ logSize + Sex * Pop (Null) 0.000000                           
+## coords ~ logSize * Sex * Pop        0.035583 1.3921 1.1482 0.136       
 ## Total</code></pre>
 <div class="sourceCode" id="cb55"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb55-1" data-line-number="1">PW2 &lt;-<span class="st"> </span><span class="kw">pairwise</span>(fit2, <span class="dt">fit.null =</span> fit, <span class="dt">groups =</span> groups, </a>
 <a class="sourceLine" id="cb55-2" data-line-number="2">                <span class="dt">covariate =</span> Pupfish<span class="op">$</span>logSize, <span class="dt">print.progress =</span> <span class="ot">FALSE</span>) </a>
