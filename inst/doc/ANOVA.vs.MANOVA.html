@@ -12,7 +12,7 @@
 
 <meta name="author" content="Michael L. Collyer" />
 
-<meta name="date" content="2019-10-07" />
+<meta name="date" content="2019-12-19" />
 
 <title>ANOVA versus MANOVA in RRPP</title>
 
@@ -303,7 +303,7 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 
 <h1 class="title toc-ignore">ANOVA versus MANOVA in RRPP</h1>
 <h4 class="author">Michael L. Collyer</h4>
-<h4 class="date">2019-10-07</h4>
+<h4 class="date">2019-12-19</h4>
 
 
 
@@ -343,15 +343,14 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <a class="sourceLine" id="cb1-4" data-line-number="4">               <span class="dt">data =</span> Pupfish, <span class="dt">print.progress =</span> <span class="ot">FALSE</span>) </a>
 <a class="sourceLine" id="cb1-5" data-line-number="5"><span class="kw">attributes</span>(fit)</a></code></pre></div>
 <pre><code>## $names
-## [1] &quot;call&quot;     &quot;LM&quot;       &quot;ANOVA&quot;    &quot;PermInfo&quot;
+## [1] &quot;call&quot;     &quot;LM&quot;       &quot;ANOVA&quot;    &quot;PermInfo&quot; &quot;Models&quot;  
 ## 
 ## $class
 ## [1] &quot;lm.rrpp&quot;</code></pre>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="kw">attributes</span>(fit<span class="op">$</span>ANOVA)</a></code></pre></div>
 <pre><code>## $names
-##  [1] &quot;SS.type&quot;   &quot;SS&quot;        &quot;MS&quot;        &quot;RSS&quot;       &quot;TSS&quot;      
-##  [6] &quot;RSS.model&quot; &quot;Rsq&quot;       &quot;Fs&quot;        &quot;cohenf&quot;    &quot;n&quot;        
-## [11] &quot;p&quot;         &quot;df&quot;</code></pre>
+##  [1] &quot;SS.type&quot;   &quot;SS&quot;        &quot;MS&quot;        &quot;RSS&quot;       &quot;TSS&quot;       &quot;RSS.model&quot;
+##  [7] &quot;Rsq&quot;       &quot;Fs&quot;        &quot;cohenf&quot;    &quot;n&quot;         &quot;p&quot;         &quot;df&quot;</code></pre>
 <p>The distributions of ANOVA statistics can then be used to construct an ANOVA table, via the anova.lm.rrpp S3 generic; i.e.,</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="kw">anova</span>(fit)</a></code></pre></div>
 <pre><code>## 
@@ -377,26 +376,26 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" data-line-number="1">fitm &lt;-<span class="st"> </span><span class="kw">manova.update</span>(fit, <span class="dt">print.progress =</span> <span class="ot">FALSE</span>, <span class="dt">tol =</span> <span class="dv">0</span>)</a>
 <a class="sourceLine" id="cb7-2" data-line-number="2"><span class="kw">attributes</span>(fitm)</a></code></pre></div>
 <pre><code>## $names
-## [1] &quot;call&quot;     &quot;LM&quot;       &quot;ANOVA&quot;    &quot;PermInfo&quot; &quot;MANOVA&quot;  
+## [1] &quot;call&quot;     &quot;LM&quot;       &quot;ANOVA&quot;    &quot;PermInfo&quot; &quot;Models&quot;   &quot;MANOVA&quot;  
 ## 
 ## $class
 ## [1] &quot;manova.lm.rrpp&quot; &quot;lm.rrpp&quot;</code></pre>
 <div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" data-line-number="1"><span class="kw">attributes</span>(fitm<span class="op">$</span>MANOVA)</a></code></pre></div>
 <pre><code>## $names
-## [1] &quot;eigs&quot;           &quot;verbose&quot;        &quot;error&quot;          &quot;e.rank&quot;        
-## [5] &quot;PCA&quot;            &quot;manova.pc.dims&quot;</code></pre>
-<p>The “eigs” object returns all the eigenvalues of <span class="math inline">\(\mathbf{S}_{random}^{-1}\mathbf{S}_{effect}\)</span>, because the default argument, verbose, was FALSE. One can return the matrices, themselves, with verbose = TRUE; i.e,</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" data-line-number="1">fitm &lt;-<span class="st"> </span><span class="kw">manova.update</span>(fit, <span class="dt">print.progress =</span> <span class="ot">FALSE</span>, <span class="dt">tol =</span> <span class="dv">0</span>, <span class="dt">verbose =</span> <span class="ot">TRUE</span>)</a>
+## [1] &quot;SSCP&quot;           &quot;invR.h&quot;         &quot;eigs&quot;           &quot;error&quot;         
+## [5] &quot;PCA&quot;            &quot;manova.pc.dims&quot; &quot;e.rank&quot;         &quot;SS.tot&quot;</code></pre>
+<p>The “eigs” object returns all the eigenvalues of <span class="math inline">\(\mathbf{S}_{random}^{-1}\mathbf{S}_{effect}\)</span>, because the default argument. One can return the matrices, themselves, with “invR.H”.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" data-line-number="1">fitm &lt;-<span class="st"> </span><span class="kw">manova.update</span>(fit, <span class="dt">print.progress =</span> <span class="ot">FALSE</span>, <span class="dt">tol =</span> <span class="dv">0</span>)</a>
 <a class="sourceLine" id="cb11-2" data-line-number="2"><span class="kw">attributes</span>(fitm)</a></code></pre></div>
 <pre><code>## $names
-## [1] &quot;call&quot;     &quot;LM&quot;       &quot;ANOVA&quot;    &quot;PermInfo&quot; &quot;MANOVA&quot;  
+## [1] &quot;call&quot;     &quot;LM&quot;       &quot;ANOVA&quot;    &quot;PermInfo&quot; &quot;Models&quot;   &quot;MANOVA&quot;  
 ## 
 ## $class
 ## [1] &quot;manova.lm.rrpp&quot; &quot;lm.rrpp&quot;</code></pre>
 <div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb13-1" data-line-number="1"><span class="kw">attributes</span>(fitm<span class="op">$</span>MANOVA)</a></code></pre></div>
 <pre><code>## $names
-## [1] &quot;invR.H&quot;         &quot;verbose&quot;        &quot;error&quot;          &quot;e.rank&quot;        
-## [5] &quot;PCA&quot;            &quot;manova.pc.dims&quot;</code></pre>
+## [1] &quot;SSCP&quot;           &quot;invR.h&quot;         &quot;eigs&quot;           &quot;error&quot;         
+## [5] &quot;PCA&quot;            &quot;manova.pc.dims&quot; &quot;e.rank&quot;         &quot;SS.tot&quot;</code></pre>
 <p>The eigs object is replaced with the invR.H object, where <span class="math inline">\(\mathbf{H} = \mathbf{S}_{effect}\)</span>, and <span class="math inline">\(\mathbf{R} = \mathbf{S}_{residual}\)</span>, in line with common notation. (<span class="math inline">\(\mathbf{H}\)</span> and <span class="math inline">\(\mathbf{R}\)</span> are SSCP matrices for model effects and residuals, respectively.) The class lm.rrpp fit has class manova.lm.rrpp added, and the S3 summary function produces a MANOVA-like table.</p>
 <div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb15-1" data-line-number="1"><span class="kw">summary</span>(fitm, <span class="dt">test =</span> <span class="st">&quot;Roy&quot;</span>)</a></code></pre></div>
 <pre><code>## 
@@ -409,11 +408,11 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 ## Sums of Squares and Cross-products: Type I
 ## Number of permutations: 1000 
 ## 
-##            Df Rand      Roy       Z        Pr(&gt;Roy)
-## Sex         1 Residuals 10351.931 1.799172 0.057   
-## Pop         1 Residuals  4847.393 1.576244 0.086   
-## Sex:Pop     1 Residuals 60177.502 2.797414 0.016   
-## Full.Model  3 Residuals 74787.858 2.079158 0.042   
+##            Df Rand      Roy       Z          Pr(&gt;Roy)
+## Sex         1 Residuals 17.733264 -0.5399986 0.75    
+## Pop         1 Residuals  2.689751 -0.3161634 0.75    
+## Sex:Pop     1 Residuals  1.898636 -0.4124888 0.75    
+## Full.Model  3 Residuals  2.472844  0.3339477 0.50    
 ## Residuals  50</code></pre>
 <div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb17-1" data-line-number="1"><span class="kw">summary</span>(fitm, <span class="dt">test =</span> <span class="st">&quot;Pillai&quot;</span>)</a></code></pre></div>
 <pre><code>## 
@@ -426,11 +425,11 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 ## Sums of Squares and Cross-products: Type I
 ## Number of permutations: 1000 
 ## 
-##            Df Rand      Pillai    Z         Pr(&gt;Pillai)
-## Sex         1 Residuals 0.9999034 0.7240395 0.057      
-## Pop         1 Residuals 0.9997937 0.7349366 0.086      
-## Sex:Pop     1 Residuals 0.9999834 0.7276483 0.016      
-## Full.Model  3 Residuals 2.9896993 1.8914600 0.001      
+##            Df Rand      Pillai    Z        Pr(&gt;Pillai)
+## Sex         1 Residuals 0.9466190 3.260241 0.001      
+## Pop         1 Residuals 0.9805254 3.648014 0.001      
+## Sex:Pop     1 Residuals 0.9270745 3.224369 0.001      
+## Full.Model  3 Residuals 2.8339784 5.994414 0.001      
 ## Residuals  50</code></pre>
 <p>It should be apparent that although the ANOVA and MANOVA results have some similarities, the effect sizes (<span class="math inline">\(Z\)</span>-scores) and <span class="math inline">\(P\)</span>-values can vary. Comparatively, the results of the MANOVA statistics can be influenced by variable covariances more so than ANOVA results (which are influenced solely by variances; i.e., the dispersion of values in the data space). The results are also influenced by dimensionality. In this case, there are more shape variables (112) than residual degrees of freedom (50), so data are projected into a lower-dimension Euclidean space to allow matrix inversion; i.e., <span class="math inline">\(\mathbf{S}_{residual}^{-1}\mathbf{S}_{effect}\)</span>. A tolerance of 0 means all possible PCs were retained for analysis. (Tolerance is the permissible relative change in eigenvalues. For example, tol = 0.01 means that if the k + 1st eigenvalue is not at least 1% smaller than the kth eigenvalue, retain only k eigenvectors. The k + 1, k + 2, k + 3, … eigenvalues decay at such a small rate that they are considered inconsequential.)</p>
 <p>When the number of observations far exceeds the data space dimensions, this is okay, and the results will be qualitatively more similar to ANOVA results. Consider this example (although reducing dimensions is not recommended as a typical solution):</p>
@@ -469,11 +468,11 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 ## Sums of Squares and Cross-products: Type I
 ## Number of permutations: 1000 
 ## 
-##            Df Rand      Roy      Z        Pr(&gt;Roy)
-## Sex         1 Residuals 11.01735 5.973880 0.001   
-## Pop         1 Residuals 30.81064 8.289593 0.001   
-## Sex:Pop     1 Residuals 10.51378 6.080885 0.001   
-## Full.Model  3 Residuals 34.28387 9.540064 0.001   
+##            Df Rand      Roy        Z           Pr(&gt;Roy)
+## Sex         1 Residuals 11.0173527 -0.71626049 0.75    
+## Pop         1 Residuals  0.8991345 -0.29739988 0.75    
+## Sex:Pop     1 Residuals  0.6347714 -0.69745728 1.00    
+## Full.Model  3 Residuals  0.8534245  0.02035165 0.75    
 ## Residuals  50</code></pre>
 <p>Alternatively, one could specify an exact number of PCs to use in analysis.</p>
 <div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb23-1" data-line-number="1">fitm &lt;-<span class="st"> </span><span class="kw">manova.update</span>(fit, <span class="dt">print.progress =</span> <span class="ot">FALSE</span>, <span class="dt">PC.no  =</span> <span class="dv">10</span>)</a>
@@ -511,11 +510,11 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 ## Sums of Squares and Cross-products: Type I
 ## Number of permutations: 1000 
 ## 
-##            Df Rand      Roy       Z         Pr(&gt;Roy)
-## Sex         1 Residuals  7.357775  6.570078 0.001   
-## Pop         1 Residuals 18.318603  8.415831 0.001   
-## Sex:Pop     1 Residuals  5.132268  5.723364 0.001   
-## Full.Model  3 Residuals 20.461447 10.123707 0.001   
+##            Df Rand      Roy        Z          Pr(&gt;Roy)
+## Sex         1 Residuals 7.35777542 -0.5012508 0.75    
+## Pop         1 Residuals 0.27395395 -0.6432838 1.00    
+## Sex:Pop     1 Residuals 0.07690274 -0.6672471 0.75    
+## Full.Model  3 Residuals 0.21335941 -0.1099130 0.75    
 ## Residuals  50</code></pre>
 </div>
 <div id="dimensionality-warning-for-manova-on-high-dimensional-data" class="section level2">
