@@ -175,7 +175,15 @@ rrpp.data.frame<- function(...){
         if(length(dim(dots[[i]])) == 2) dots.ns[i] <- dim(dots[[i]])[[2]]
         if(length(dim(dots[[i]])) == 1) dots.ns[i] <- dim(dots[[i]])[[1]]
       }
-      if(is.matrix(dots[[i]])) dots.ns[i] <- dim(dots[[i]])[[1]]
+      if(is.matrix(dots[[i]])) {
+        dots.ns[i] <- dim(dots[[i]])[[1]]
+        dt.nms <- rownames(dots[[i]])
+        if(dots.ns[i] == length(dots[[i]])) {
+          dots[[i]] <- as.vector(dots[[i]])
+          names(dots[[i]]) <- dt.nms
+        }
+      }
+      
       if(inherits(dots[[i]], "dist")) dots.ns[i] <- attr(dots[[i]], "Size")
       if(is.data.frame(dots[[i]])) dots.ns[i] <- dim(dots[[i]])[[1]]
       if(is.vector(dots[[i]])) dots.ns[i] <- length(dots[[i]])
@@ -277,7 +285,7 @@ lm.args.from.formula <- function(cl){
   }
   
   if(is.vector(Y)) {
-    Y <- matrix(Y)
+    Y <- as.matrix(Y)
     Dy <- NULL
   }
   
@@ -912,10 +920,13 @@ lm.glsfits <- function(Terms,Y, Cov, offset = NULL, tol = 1e-7,
         x <- as.matrix(Xs[[j]])
         coef.j <- e$coefficients
         f$coefficients <- coef.j
-        f$fitted.values <- x %*% coef.j
-        f$effects <- qr.qty(e$qr, PY)
-        f$residuals <- Y - f$fitted
-        f$qr <- e$qr
+        f$fitted.values <- if(length(coef.j > 0)) as.matrix(x %*% coef.j) else f$fitted.values
+        if(!is.null(e$effects)) f$effects <- qr.qty(e$qr, PY) else {
+          Q <- qr(rep(0, NROW(X)))
+          f$effects <- qr.qty(Q, PY)
+        }
+        f$residuals <- if(!is.null(f$fitted.values)) Y - f$fitted.values else Y
+        f$qr <- if(!is.null(e$effects)) e$qr else Q
         f$qraux <- e$qraux
         f
       })

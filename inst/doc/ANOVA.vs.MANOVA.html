@@ -12,7 +12,7 @@
 
 <meta name="author" content="Michael L. Collyer" />
 
-<meta name="date" content="2020-05-28" />
+<meta name="date" content="2020-06-24" />
 
 <title>ANOVA versus MANOVA in RRPP</title>
 
@@ -301,7 +301,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 <h1 class="title toc-ignore">ANOVA versus MANOVA in RRPP</h1>
 <h4 class="author">Michael L. Collyer</h4>
-<h4 class="date">2020-05-28</h4>
+<h4 class="date">2020-06-24</h4>
 
 
 
@@ -380,7 +380,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 ## [1] &quot;manova.lm.rrpp&quot; &quot;lm.rrpp&quot;</code></pre>
 <div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" data-line-number="1"><span class="kw">attributes</span>(fitm<span class="op">$</span>MANOVA)</a></code></pre></div>
 <pre><code>## $names
-## [1] &quot;SSCP&quot;           &quot;invR.h&quot;         &quot;eigs&quot;           &quot;error&quot;         
+## [1] &quot;SSCP&quot;           &quot;invR.H&quot;         &quot;eigs&quot;           &quot;error&quot;         
 ## [5] &quot;PCA&quot;            &quot;manova.pc.dims&quot; &quot;e.rank&quot;         &quot;SS.tot&quot;</code></pre>
 <p>The “eigs” object returns all the eigenvalues of <span class="math inline">\(\mathbf{S}_{random}^{-1}\mathbf{S}_{effect}\)</span>, because the default argument. One can return the matrices, themselves, with “invR.H”.</p>
 <div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" data-line-number="1">fitm &lt;-<span class="st"> </span><span class="kw">manova.update</span>(fit, <span class="dt">print.progress =</span> <span class="ot">FALSE</span>, <span class="dt">tol =</span> <span class="dv">0</span>)</a>
@@ -392,7 +392,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 ## [1] &quot;manova.lm.rrpp&quot; &quot;lm.rrpp&quot;</code></pre>
 <div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb13-1" data-line-number="1"><span class="kw">attributes</span>(fitm<span class="op">$</span>MANOVA)</a></code></pre></div>
 <pre><code>## $names
-## [1] &quot;SSCP&quot;           &quot;invR.h&quot;         &quot;eigs&quot;           &quot;error&quot;         
+## [1] &quot;SSCP&quot;           &quot;invR.H&quot;         &quot;eigs&quot;           &quot;error&quot;         
 ## [5] &quot;PCA&quot;            &quot;manova.pc.dims&quot; &quot;e.rank&quot;         &quot;SS.tot&quot;</code></pre>
 <p>The eigs object is replaced with the invR.H object, where <span class="math inline">\(\mathbf{H} = \mathbf{S}_{effect}\)</span>, and <span class="math inline">\(\mathbf{R} = \mathbf{S}_{residual}\)</span>, in line with common notation. (<span class="math inline">\(\mathbf{H}\)</span> and <span class="math inline">\(\mathbf{R}\)</span> are SSCP matrices for model effects and residuals, respectively.) The class lm.rrpp fit has class manova.lm.rrpp added, and the S3 summary function produces a MANOVA-like table.</p>
 <div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb15-1" data-line-number="1"><span class="kw">summary</span>(fitm, <span class="dt">test =</span> <span class="st">&quot;Roy&quot;</span>)</a></code></pre></div>
@@ -403,14 +403,17 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 ## Number of dependent variables: 112
 ## Data space dimensions: 53
 ## Residual covariance matrix rank: 50
+##    Data reduced to 0.02155022 PCs, as required or prescribed.
+##    0.8 % of overall variation explained by these PCs.
+##    See $MANOVA$PCA from manova.lm.rrpp object for more information.
 ## Sums of Squares and Cross-products: Type I
 ## Number of permutations: 1000 
 ## 
-##            Df Rand      Roy       Z          Pr(&gt;Roy)
-## Sex         1 Residuals 17.733264 -0.5399986 0.75    
-## Pop         1 Residuals  2.689751 -0.3161634 0.75    
-## Sex:Pop     1 Residuals  1.898636 -0.4124888 0.75    
-## Full.Model  3 Residuals  2.472844  0.3339477 0.50    
+##            Df Rand      Roy      Z          Pr(&gt;Roy)
+## Sex         1 Residuals 17.73326  6.4310485 0.001   
+## Pop         1 Residuals 50.34889  1.6493235 0.070   
+## Sex:Pop     1 Residuals 12.71263 -0.5765506 0.706   
+## Full.Model  3 Residuals 54.35676 10.6632951 0.001   
 ## Residuals  50</code></pre>
 <div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb17-1" data-line-number="1"><span class="kw">summary</span>(fitm, <span class="dt">test =</span> <span class="st">&quot;Pillai&quot;</span>)</a></code></pre></div>
 <pre><code>## 
@@ -420,14 +423,17 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 ## Number of dependent variables: 112
 ## Data space dimensions: 53
 ## Residual covariance matrix rank: 50
+##    Data reduced to 0.02155022 PCs, as required or prescribed.
+##    0.8 % of overall variation explained by these PCs.
+##    See $MANOVA$PCA from manova.lm.rrpp object for more information.
 ## Sums of Squares and Cross-products: Type I
 ## Number of permutations: 1000 
 ## 
-##            Df Rand      Pillai    Z        Pr(&gt;Pillai)
-## Sex         1 Residuals 0.9466190 3.260241 0.001      
-## Pop         1 Residuals 0.9805254 3.648014 0.001      
-## Sex:Pop     1 Residuals 0.9270745 3.224369 0.001      
-## Full.Model  3 Residuals 2.8339784 5.994414 0.001      
+##            Df Rand      Pillai    Z          Pr(&gt;Pillai)
+## Sex         1 Residuals 0.9466190  3.2602408 0.001      
+## Pop         1 Residuals 0.9805254  1.1677122 0.070      
+## Sex:Pop     1 Residuals 0.9270745 -0.1050152 0.706      
+## Full.Model  3 Residuals 2.8339784  5.9944142 0.001      
 ## Residuals  50</code></pre>
 <p>It should be apparent that although the ANOVA and MANOVA results have some similarities, the effect sizes (<span class="math inline">\(Z\)</span>-scores) and <span class="math inline">\(P\)</span>-values can vary. Comparatively, the results of the MANOVA statistics can be influenced by variable covariances more so than ANOVA results (which are influenced solely by variances; i.e., the dispersion of values in the data space). The results are also influenced by dimensionality. In this case, there are more shape variables (112) than residual degrees of freedom (50), so data are projected into a lower-dimension Euclidean space to allow matrix inversion; i.e., <span class="math inline">\(\mathbf{S}_{residual}^{-1}\mathbf{S}_{effect}\)</span>. A tolerance of 0 means all possible PCs were retained for analysis. (Tolerance is the permissible relative change in eigenvalues. For example, tol = 0.01 means that if the k + 1st eigenvalue is not at least 1% smaller than the kth eigenvalue, retain only k eigenvectors. The k + 1, k + 2, k + 3, … eigenvalues decay at such a small rate that they are considered inconsequential.)</p>
 <p>When the number of observations far exceeds the data space dimensions, this is okay, and the results will be qualitatively more similar to ANOVA results. Consider this example (although reducing dimensions is not recommended as a typical solution):</p>
@@ -460,17 +466,17 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 ## Number of dependent variables: 112
 ## Data space dimensions: 53
 ## Residual covariance matrix rank: 50
-##    Data reduced to 25 PCs, as required or prescribed.
-##    99.1 % of overall variation explained by these PCs.
+##    Data reduced to 0.02155022 PCs, as required or prescribed.
+##    0.8 % of overall variation explained by these PCs.
 ##    See $MANOVA$PCA from manova.lm.rrpp object for more information.
 ## Sums of Squares and Cross-products: Type I
 ## Number of permutations: 1000 
 ## 
-##            Df Rand      Roy        Z           Pr(&gt;Roy)
-## Sex         1 Residuals 11.0173527 -0.71626049 0.75    
-## Pop         1 Residuals  0.8991345 -0.29739988 0.75    
-## Sex:Pop     1 Residuals  0.6347714 -0.69745728 1.00    
-## Full.Model  3 Residuals  0.8534245  0.02035165 0.75    
+##            Df Rand      Roy      Z          Pr(&gt;Roy)
+## Sex         1 Residuals 17.73326  6.4310485 0.001   
+## Pop         1 Residuals 50.34889  1.6493235 0.070   
+## Sex:Pop     1 Residuals 12.71263 -0.5765506 0.706   
+## Full.Model  3 Residuals 54.35676 10.6632951 0.001   
 ## Residuals  50</code></pre>
 <p>Alternatively, one could specify an exact number of PCs to use in analysis.</p>
 <div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb23-1" data-line-number="1">fitm &lt;-<span class="st"> </span><span class="kw">manova.update</span>(fit, <span class="dt">print.progress =</span> <span class="ot">FALSE</span>, <span class="dt">PC.no  =</span> <span class="dv">10</span>)</a>
@@ -502,17 +508,17 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 ## Number of dependent variables: 112
 ## Data space dimensions: 53
 ## Residual covariance matrix rank: 50
-##    Data reduced to 10 PCs, as required or prescribed.
-##    93.3 % of overall variation explained by these PCs.
+##    Data reduced to 0.02155022 PCs, as required or prescribed.
+##    0.9 % of overall variation explained by these PCs.
 ##    See $MANOVA$PCA from manova.lm.rrpp object for more information.
 ## Sums of Squares and Cross-products: Type I
 ## Number of permutations: 1000 
 ## 
-##            Df Rand      Roy        Z          Pr(&gt;Roy)
-## Sex         1 Residuals 7.35777542 -0.5012508 0.75    
-## Pop         1 Residuals 0.27395395 -0.6432838 1.00    
-## Sex:Pop     1 Residuals 0.07690274 -0.6672471 0.75    
-## Full.Model  3 Residuals 0.21335941 -0.1099130 0.75    
+##            Df Rand      Roy       Z         Pr(&gt;Roy)
+## Sex         1 Residuals  7.357775  6.570078 0.001   
+## Pop         1 Residuals 18.318603  8.415831 0.001   
+## Sex:Pop     1 Residuals  5.132268  5.723364 0.001   
+## Full.Model  3 Residuals 20.461447 10.123707 0.001   
 ## Residuals  50</code></pre>
 </div>
 <div id="dimensionality-warning-for-manova-on-high-dimensional-data" class="section level2">

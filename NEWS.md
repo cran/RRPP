@@ -1,3 +1,14 @@
+# CHANGES IN RRPP 0.6.1 (Patch Release)
+
+### NEW FEATURES
+### OTHER CHANGES
+### BUG FIXES
+* Refined `manova.update` to have more efficient code and better notes.
+* Fixed a bug in `summary.manova.lm.rrpp` that mixed up rows and columns of a matrix of random stats.
+* Fixed a bug that eliminated row names for `lm.rrpp` data when converting a vector of data to a matrix.
+* Added a step to coerce single-column matrices to vectors in `rrpp.data.frame` to prevent downstream issues.
+* Made it possible to use `trajectory.analysis` with univariate response data, omitting vector correlations output.
+
 # CHANGES IN RRPP 0.6.0 (Minor Release)
 
 ### NEW FEATURES

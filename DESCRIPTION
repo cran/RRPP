@@ -1,7 +1,7 @@
 Package: RRPP
 Title: Linear Model Evaluation with Randomized Residuals in a
         Permutation Procedure
-Version: 0.6.0
+Version: 0.6.1
 Authors@R: c(
     person("Michael", "Collyer", , "mlcollyer@gmail.com", c("aut", "cre")),
     person("Dean", "Adams", , role = "aut")
@@ -24,9 +24,9 @@ Imports: parallel, ape
 Suggests: knitr, rmarkdown, testthat
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2020-05-28 15:53:02 UTC; m.collyer
+Packaged: 2020-06-24 15:36:59 UTC; m.collyer
 Author: Michael Collyer [aut, cre],
   Dean Adams [aut]
 Maintainer: Michael Collyer <mlcollyer@gmail.com>
 Repository: CRAN
-Date/Publication: 2020-05-28 16:40:03 UTC
+Date/Publication: 2020-06-24 16:10:03 UTC
