@@ -18,11 +18,6 @@ attributes(fitm)
 attributes(fitm$MANOVA)
 
 ## -----------------------------------------------------------------------------
-fitm <- manova.update(fit, print.progress = FALSE, tol = 0)
-attributes(fitm)
-attributes(fitm$MANOVA)
-
-## -----------------------------------------------------------------------------
 summary(fitm, test = "Roy")
 summary(fitm, test = "Pillai")
 

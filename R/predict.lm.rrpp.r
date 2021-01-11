@@ -1,25 +1,38 @@
 #' predict for lm.rrpp model fits
 #'
-#' @description Computes predicted values from an \code{\link{lm.rrpp}} model fit, using bootstrapped residuals
-#' to generate confidence intervals.  (Residuals are the residuals of the lm.rppp fit, not its null model.  The bootstrap
+#' @description Computes predicted values from an \code{\link{lm.rrpp}} 
+#' model fit, using bootstrapped residuals
+#' to generate confidence intervals.  (Residuals are the residuals of 
+#' the lm.rppp fit, not its null model.  The bootstrap
 #' procedure resamples residual vectors with replacement.)
-#' The bootstrap permutations use the same number of iterations and seed as used
-#' in the \code{\link{lm.rrpp}} model fit. A \code{\link{predict.lm.rrpp}} object can be plotted using various options.
+#' The bootstrap permutations use the same number of iterations and 
+#' seed as used
+#' in the \code{\link{lm.rrpp}} model fit. A \code{\link{predict.lm.rrpp}} 
+#' object can be plotted using various options.
 #' See \code{\link{plot.predict.lm.rrpp}}.
 #' 
-#' Note that if data offsets are used (if the offset argument is used when fitting a \code{\link{lm.rrpp}} model),
-#' they are ignored for estimating coefficients over iterations.  Offsets are subtracted from data in \code{\link[stats]{lm}} and 
-#' added to predicted values in \code{\link[stats]{predict.lm}}, effectively adjusted the intercept and then un-adjusting
-#' it for predictions.  This causes problems if the newdata have a different number of observations than the original
+#' Note that if data offsets are used (if the offset argument is used 
+#' when fitting a \code{\link{lm.rrpp}} model),
+#' they are ignored for estimating coefficients over iterations.  
+#' Offsets are subtracted from data in \code{\link[stats]{lm}} and 
+#' added to predicted values in \code{\link[stats]{predict.lm}}, 
+#' effectively adjusted the intercept and then un-adjusting
+#' it for predictions.  This causes problems if the newdata have a 
+#' different number of observations than the original
 #' model fit.
 #' 
 #'
 #' @param object Object from \code{\link{lm.rrpp}}.
-#' @param newdata Data frame of either class \code{\link{data.frame}} or \code{\link{rrpp.data.frame}}.  If null,
-#' the data frame from the lm.rrpp fit will be used, effectively calculating all fitted values and
-#' their confidence intervals.  If a numeric variable is missing from newdata, an attempt to average the values
-#' will be made in prediction; i.e., least squares means for factor levels can be found.  All factors used in the
-#' \code{\link{lm.rrpp}} fit should be represented in the newdata data frame, with appropriate factor levels.
+#' @param newdata Data frame of either class \code{\link{data.frame}} 
+#' or \code{\link{rrpp.data.frame}}.  If null,
+#' the data frame from the lm.rrpp fit will be used, effectively calculating 
+#' all fitted values and
+#' their confidence intervals.  If a numeric variable is missing from newdata, 
+#' an attempt to average the values
+#' will be made in prediction; i.e., least squares means for factor levels 
+#' can be found.  All factors used in the
+#' \code{\link{lm.rrpp}} fit should be represented in the newdata data frame, 
+#' with appropriate factor levels.
 #' @param confidence The desired confidence interval level for prediction.
 #' @param ... Other arguments (currently none)
 #' @export
@@ -30,10 +43,10 @@
 #' # with other functions
 #' 
 #' data(Pupfish)
-#' names(Pupfish)
-#' Pupfish$logSize <- log(Pupfish$CS) # better to not have functions in formulas
-#'
-#' fit <- lm.rrpp(coords ~ logSize + Sex*Pop, SS.type = "I", data = Pupfish, iter = 499) 
+#' 
+#' # CS is centroid (fish) size
+#' fit <- lm.rrpp(coords ~ log(CS)  + Sex*Pop, 
+#' SS.type = "I", data = Pupfish, iter = 499) 
 #'
 #' # Predictions (holding alternative effects constant)
 #' 
@@ -54,86 +67,65 @@
 #' plot(shapePreds, PC = TRUE, ellipse = TRUE)
 #' plot(shapePreds99, PC = TRUE)
 #' plot(shapePreds99, PC = TRUE, ellipse = TRUE)
-predict.lm.rrpp <- function(object, newdata, confidence = 0.95, ...) {
+#' 
+predict.lm.rrpp <- function(object, newdata = NULL, confidence = 0.95, ...) {
   if(!inherits(object, "lm.rrpp")) stop("Object is not class lm.rrpp")
   Terms <- object$LM$Terms
-  trms <- object$LM$term.labes
+  trms <- object$LM$term.labels
   k <- length(trms)
   TT <- delete.response(Terms)
-  if (missing(newdata) || is.null(newdata)) {
-    newdata <- model.frame(TT, data = object$LM$data)
-    full.predict <- TRUE
-  } else full.predict = FALSE
   
-  if(!inherits(newdata, "data.frame") && !inherits(newdata, "rrpp.data.frame"))
-    stop("newdata must be an object of class data.frame or rrpp.data.frame")
-  if(confidence < 0 || confidence > 1) stop("Confidence level must be between 0 and 1")
+  if(!missing(newdata) || !is.null(newdata)) {
+    
+    if(!inherits(newdata, "data.frame") && !inherits(newdata, "rrpp.data.frame"))
+      stop("newdata must be an object of class data.frame or rrpp.data.frame")
+    if(confidence < 0 || confidence > 1) 
+      stop("Confidence level must be between 0 and 1")
+    
+    if(inherits(newdata, "rrpp.data.frame")) {
+      vars <- all.vars(TT)
+      refd <- names(newdata) %in% vars
+      if(!all(refd))
+        stop("\nOne or more variables in newdata are not model terms.\n",
+             call. = FALSE)
+      if(length(refd) != length(newdata))
+        stop("\nIt's not possible to coerce the rrpp.data.frame into a 
+             useable data frame for prediction.\n",
+             call. = FALSE)
+      
+      class(newdata) <- "list"
+    }
+    
+  }
   
-  if(inherits(newdata, "rrpp.data.frame")) {
-    vars <- all.vars(TT)
-    refd <- names(newdata) %in% vars
-    if(!all(refd))
-      stop("\nOne or more variables in newdata are not model terms.\n",
+  if(!is.null(newdata) && is.list(newdata)) newdata <- as.data.frame(newdata)
+  
+  if(missing(newdata) || is.null(newdata)) {
+    nX <- object$LM$X
+  } else {
+    nX <- matrix(colMeans(object$LM$X), NROW(newdata), NCOL(object$LM$X), 
+                 byrow = TRUE)
+    colnames(nX) <- colnames(object$LM$X)
+    rownames(nX) <- rownames(newdata)
+    
+    o.names <- all.vars(TT)
+    n.names <- names(newdata)
+    tm <- match(o.names, n.names)
+    if(all(is.na(tm)))
+      stop("\nVariables in newdata do not match variables used in lm.rrpp fit",
            call. = FALSE)
-    if(length(refd) != length(newdata))
-      stop("\nIt's not possible to coerce the rrpp.data.frame into a useable data frame for prediction.\n",
-           call. = FALSE)
-    if(length(nd) < length(vars)) {
+    if(any(is.na(tm))) {
       cat("\nWarning: Not all variables in model accounted for in newdata.")
       cat("\nMissing variables will be averaged from observed data for prediction.\n\n")
     }
     
-    class(newdata) <- "list"
-    newdata <- as.data.frame(newdata)
+    nform <- formula(TT[which(!is.na(tm))])
+    mX <- model.matrix(nform, data = newdata)
+    nX[, match(colnames(mX), colnames(nX))] <- mX
   }
   
   o <- object$LM$offset
   if(!is.null(o)) offst = TRUE else offst = FALSE
-  
-  if(full.predict){
-    
-    nX <- X <- object$LM$X
-    
-  } else {
-    
-    xm <- colMeans(object$LM$X)
-    xm <- xm[xm > 0]
-    
-    oX <- matrix(xm, NROW(newdata), length(xm), byrow = TRUE)
-    colnames(oX) <- names(xm)
-    
-    fl <- object$LM$term.labels
-    tl <- intersect(fl, names(object$LM$data))
-    pl <- match(tl, names(newdata))
-    if(all(is.na(pl))) stop("No variables in newdata match variables in lm.rrpp fit")
-    gl <- names(newdata)[na.omit(pl)]
-    if(length(gl) != length(tl)) {
-      cat("\nWarning: Not all variables in model accounted for in newdata.")
-      cat("\nMissing variables will be averaged from observed data for prediction.\n\n")
-    }
-    nd <- as.data.frame(newdata[match(gl, names(newdata))])
-    if(any(is.na(pl))){
-      add.l <- tl[is.na(match(tl, names(newdata)))]
-      nda <- sapply(1:length(add.l), function(j){
-        x <- rep(0, NROW(nd))
-        x
-      })
-      colnames(nda) <- add.l
-      nd <- data.frame(cbind(nd, nda))
-      nd <- nd[, match(tl, names(nd))]
-    }
-    od <- object$LM$data
-    yl <- setdiff(names(od), tl)
-    df.add <- names(od[yl])
-    nd.names <- names(nd)
-    for(i in 1:length(df.add)) nd <- cbind(nd, 0)
-    names(nd) <- c(nd.names, df.add)
-    nX <- model.matrix(Terms, data = nd) 
-    
-    nX <- nX[, intersect(colnames(nX), colnames(oX))]
-    nX <- cbind(nX, oX[, -(match(colnames(nX), colnames(oX)))])
-    
-  }
   
   n <- NROW(nX)
   p <- NCOL(object$LM$Y)
@@ -142,11 +134,12 @@ predict.lm.rrpp <- function(object, newdata, confidence = 0.95, ...) {
   seed <- attr(PI, "seed")
   perms <- length(PI)
   indb <- boot.index(length(PI[[1]]), perms -1, seed)
-  k <- length(object$LM$term.labels)
+  k <- length(object$Models$full)
   
+  #### Need to fix betas to be same rank as nX
   betas <- beta.boot.iter(object, indb)
   
-  predM <- function(b) as.matrix(nX %*% b)
+  predM <- function(b) as.matrix(nX[, rownames(b)] %*% b)
   preds <- lapply(betas, predM)
   
   alpha = 1 - confidence
@@ -200,7 +193,7 @@ predict.lm.rrpp <- function(object, newdata, confidence = 0.95, ...) {
     }
   }
   
-  data.name = all.vars(object$LM$form)[1]
+  data.name = as.character(object$call[[2]][[2]])
   rn <- rownames(nX)
   if(is.null(rownames(nX))) rn <- as.character(1:NROW(nX))
   colnames(meanV) <- colnames(LCL) <- colnames(UCL) <- colnames(object$LM$Y)

@@ -1,3 +1,22 @@
+# CHANGES IN RRPP 0.6.2
+
+### NEW FEATURES
+* Added option to add abscissa to `plot.predict.lm.rrpp`.
+* Added Box-Cox transformation to `effect.size`.
+* Added option to flip axes in `plot.ordinate`.
+* Updated `predict.lm.rrpp` so that functions in formulae are permissible.
+
+### OTHER CHANGES 
+* Adapted `summary.pairwise` to perform degree transformations rather than `print.summary.pairwise`, so that objects saved are the same as objects printed.
+* Removed error trap from pairwise for n = 1 groups.
+
+### BUG FIXES
+* Fixed class check on `model.comparison`.
+* Fixed `manova.update` pc dimension issue (output)
+* Fixed `xlim` and `ylim` to be adjustable in `plot.ordinate`.
+* Added transform logical output to ordinate.
+* Fixed intercept only model issue in lm.rrpp.
+
 # CHANGES IN RRPP 0.6.1 (Patch Release)
 
 ### NEW FEATURES
