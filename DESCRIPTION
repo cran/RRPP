@@ -1,10 +1,12 @@
 Package: RRPP
 Title: Linear Model Evaluation with Randomized Residuals in a
         Permutation Procedure
-Version: 0.6.2
+Version: 1.0.0
 Authors@R: c(
-    person("Michael", "Collyer", , "mlcollyer@gmail.com", c("aut", "cre")),
-    person("Dean", "Adams", , role = "aut")
+    person("Michael", "Collyer", , "mlcollyer@gmail.com", c("aut", "cre"), 
+    comment = c(ORCID = "0000-0003-0238-2201")),
+    person("Dean", "Adams", , role = "aut", 
+    comment = c(ORCID = "0000-0001-9172-7894"))
     )
 Description: Linear model calculations are made for many random versions of data.  
     Using residual randomization in a permutation procedure, sums of squares are 
@@ -20,13 +22,14 @@ URL: https://github.com/mlcollyer/RRPP
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.1.1
-Imports: parallel, ape
-Suggests: knitr, rmarkdown, testthat
+Imports: Rcpp (>= 1.0.6), parallel, ape, ggplot2, Matrix
+Suggests: knitr, rmarkdown, testthat (>= 3.0.0), dplyr, tibble
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2021-01-11 12:49:47 UTC; m.collyer
-Author: Michael Collyer [aut, cre],
-  Dean Adams [aut]
+Packaged: 2021-03-29 23:37:29 UTC; m.collyer
+Author: Michael Collyer [aut, cre] (<https://orcid.org/0000-0003-0238-2201>),
+  Dean Adams [aut] (<https://orcid.org/0000-0001-9172-7894>)
 Maintainer: Michael Collyer <mlcollyer@gmail.com>
 Repository: CRAN
-Date/Publication: 2021-01-11 15:10:16 UTC
+Date/Publication: 2021-03-30 06:50:12 UTC
+Config/testthat/edition: 3

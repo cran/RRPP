@@ -129,6 +129,10 @@
 #' be a linear model fit
 #' from \code{\link{lm}}.
 #' @param iter Number of iterations for significance testing
+#' @param turbo A logical value that if TRUE, suppresses coefficient estimation 
+#' in every random permutation.  This will affect subsequent analyses that 
+#' require random coefficients (see \code{\link{coef.lm.rrpp}})
+#' but might be useful for large data sets for which only ANOVA is needed.
 #' @param seed An optional argument for setting the seed for random 
 #' permutations of the resampling procedure.
 #' If left NULL (the default), the exact same P-values will be found 
@@ -152,16 +156,12 @@
 #' @param print.progress A logical value to indicate whether a progress 
 #' bar should be printed to the screen.
 #' This is helpful for long-running analyses.
-#' @param Parallel A logical value to indicate whether parallel processing 
-#' should be used.  If TRUE, this argument
-#' invokes forking of processor cores, using the \code{parallel} library.  
-#' This option is only available to unix systems
-#' and should only be used for rather long analyses (that would normally 
-#' take over 10 seconds on a single core).  Currently,
-#' parallel processing is performed on all but one core with no option 
-#' to change the number of cores.  Systems with Windows
-#' platforms will automatically default to a single-core application of 
-#' this function.
+#' @param Parallel Either a logical value to indicate whether parallel processing 
+#' should be used or a numeric value to indicate the number of cores to use in 
+#' parallel processing via the \code{parallel} library. 
+#' If TRUE, this argument invokes forking of all processor cores, except one.  If
+#' FALSE, only one core is used. A numeric value directs the number of cores to use,
+#' but one core will always be spared.
 #' @param ... Arguments typically used in \code{\link{lm}}, such as 
 #' weights or offset, passed on to
 #' \code{rrpp.fit} for estimation of coefficients.  If both weights and 
@@ -395,10 +395,22 @@
 #' plot(predict(fitOLSm, sizeDF), abscissa = sizeDF) # Correlated error
 #' plot(predict(fitGLSm, sizeDF), abscissa = sizeDF) # Independent error
 
-lm.rrpp <- function(f1, iter = 999, seed = NULL, int.first = FALSE,
+lm.rrpp <- function(f1, iter = 999, turbo = FALSE, seed = NULL, int.first = FALSE,
                         RRPP = TRUE, SS.type = c("I", "II", "III"),
                         data = NULL, Cov = NULL,
-                        print.progress = TRUE, Parallel = FALSE, ...) {
+                        print.progress = FALSE, Parallel = FALSE, ...) {
+  ParCores <- NULL
+  if (is.numeric(Parallel)) {
+    ParCores <- Parallel
+    Parallel <- TRUE
+  }
+  if (Parallel && is.null(ParCores)) {
+    ParCores <- detectCores() - 1
+  }
+  
+  if (is.numeric(ParCores)) {
+    if(ParCores > detectCores() - 1) ParCores <- detectCores() - 1
+  } 
   
   L <- c(as.list(environment()), list(...))
   names(L)[which(names(L) == "f1")] <- "formula"
@@ -424,7 +436,10 @@ lm.rrpp <- function(f1, iter = 999, seed = NULL, int.first = FALSE,
   
   Terms <- D <- NULL
   
-  if(print.progress) cat("\nPreliminary Model Fit...\n\n")
+  if(print.progress) {
+    cat("\nPlease be aware that printing progress slows down the analysis (perhaps slightly).\n")
+    cat("\nPreliminary Model Fit...\n")
+  } 
   
   if(!is.null(Cov)) {
     Cov.name <- deparse(substitute(Cov))
@@ -528,20 +543,24 @@ lm.rrpp <- function(f1, iter = 999, seed = NULL, int.first = FALSE,
   
   SS.args <- beta.args <- list(exchange = exchange, ind = ind, 
                                RRPP = RRPP, print.progress = print.progress)
+  if(Parallel) SS.args$ParCores <- beta.args$ParCores <- ParCores
   
   beta.args$exchange <- exchange.o
   if(weighted && offst) 
     beta.args$exchange$offset <- o * sqrt(w)
   
-  if(Parallel) {
-    if(.Platform$OS.type == "windows") betas <- do.call(beta.iter, beta.args)
-    else betas <- do.call(beta.iterPP, beta.args)
-  } else betas <- do.call(beta.iter, beta.args)
+  if(!turbo) {
+    
+    betas <- if(Parallel)  do.call(beta.iterPP, beta.args) else 
+      do.call(beta.iter, beta.args)
+  } else {
+    random.coef = vector("list", max(1, k))
+    random.coef.distances = vector("list", max(1, k))
+    names(random.coef.distances) <- names(random.coef) <- trms
+    betas <- list(random.coef = random.coef, random.coef.distances = random.coef.distances)
+  }
   
-  if(Parallel) {
-    if(.Platform$OS.type == "windows") SS <- do.call(SS.iter, SS.args)
-    else SS <- do.call(SS.iterPP, SS.args)
-  } else SS <- do.call(SS.iter, SS.args)
+  SS <- if(Parallel) do.call(SS.iterPP, SS.args) else do.call(SS.iter, SS.args)
   
   ANOVA <- anova.parts(exchange, SS)
   fit <- if(k > 0) fits$full[[k]] else fits$full
@@ -573,8 +592,8 @@ lm.rrpp <- function(f1, iter = 999, seed = NULL, int.first = FALSE,
   
   if(gls) {
     names(LM)[[2]] <- "gls.coefficients"
-    LM$gls.fitted <- fit$fitted.values
-    LM$gls.residuals <- fit$residuals
+    LM$gls.fitted <- LM$X %*% LM$gls.coefficients
+    LM$gls.residuals <- LM$Y - LM$gls.fitted
     LM$gls.mean <- if(NCOL(LM$gls.fitted) > 1) colMeans(LM$gls.fitted) else
       mean(LM$gls.fitted)
   } else {
@@ -592,11 +611,11 @@ lm.rrpp <- function(f1, iter = 999, seed = NULL, int.first = FALSE,
                    perm.method = ifelse(RRPP==TRUE,"RRPP", "FRPP"), 
                    perm.schedule = ind, perm.seed = seed)
   out <- list(call = match.call(), 
-              LM = LM, ANOVA = ANOVA, PermInfo = PermInfo)
+              LM = LM, ANOVA = ANOVA, PermInfo = PermInfo, turbo = turbo)
   
   
   if(k == 0 && print.progress)
-    cat("\n No terms for ANOVA; only RSS calculated in each permutation\n")
+    cat("\nNo terms for ANOVA; only RSS calculated in each permutation\n")
   
   if(!is.null(D)) {
     qrf <- LM$QR
@@ -607,5 +626,6 @@ lm.rrpp <- function(f1, iter = 999, seed = NULL, int.first = FALSE,
   out$Models <- fits[c("reduced", "full")]
   
   class(out) = "lm.rrpp"
+
   out
 }

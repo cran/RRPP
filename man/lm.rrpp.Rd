@@ -7,13 +7,14 @@
 lm.rrpp(
   f1,
   iter = 999,
+  turbo = FALSE,
   seed = NULL,
   int.first = FALSE,
   RRPP = TRUE,
   SS.type = c("I", "II", "III"),
   data = NULL,
   Cov = NULL,
-  print.progress = TRUE,
+  print.progress = FALSE,
   Parallel = FALSE,
   ...
 )
@@ -24,6 +25,11 @@ be a linear model fit
 from \code{\link{lm}}.}
 
 \item{iter}{Number of iterations for significance testing}
+
+\item{turbo}{A logical value that if TRUE, suppresses coefficient estimation 
+in every random permutation.  This will affect subsequent analyses that 
+require random coefficients (see \code{\link{coef.lm.rrpp}})
+but might be useful for large data sets for which only ANOVA is needed.}
 
 \item{seed}{An optional argument for setting the seed for random 
 permutations of the resampling procedure.
@@ -55,16 +61,12 @@ any weights are ignored.}
 bar should be printed to the screen.
 This is helpful for long-running analyses.}
 
-\item{Parallel}{A logical value to indicate whether parallel processing 
-should be used.  If TRUE, this argument
-invokes forking of processor cores, using the \code{parallel} library.  
-This option is only available to unix systems
-and should only be used for rather long analyses (that would normally 
-take over 10 seconds on a single core).  Currently,
-parallel processing is performed on all but one core with no option 
-to change the number of cores.  Systems with Windows
-platforms will automatically default to a single-core application of 
-this function.}
+\item{Parallel}{Either a logical value to indicate whether parallel processing 
+should be used or a numeric value to indicate the number of cores to use in 
+parallel processing via the \code{parallel} library. 
+If TRUE, this argument invokes forking of all processor cores, except one.  If
+FALSE, only one core is used. A numeric value directs the number of cores to use,
+but one core will always be spared.}
 
 \item{...}{Arguments typically used in \code{\link{lm}}, such as 
 weights or offset, passed on to

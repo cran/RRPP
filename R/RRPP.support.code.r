@@ -33,6 +33,8 @@
 #' @import stats
 #' @import graphics
 #' @import utils
+#' @import ggplot2 
+#' @import Matrix
 #' @importFrom ape multi2di.phylo
 #' @importFrom ape root.phylo
 #' @export print.lm.rrpp
@@ -52,7 +54,7 @@
 #' @export print.trajectory.analysis
 #' @export summary.trajectory.analysis
 #' @export print.summary.trajectory.analysis
-#' 
+NULL
 #' @section RRPP TOC:
 #' RRPP-package
 NULL
@@ -1023,6 +1025,7 @@ droplevels.rrpp.data.frame <- function (x, except = NULL, ...) {
 # workhorse for lm.rrpp
 # used in lm.rrpp
 
+
 SS.iter <- function(exchange, ind, RRPP = TRUE, print.progress = TRUE) {
   reduced <- exchange$reduced
   full <- exchange$full
@@ -1034,7 +1037,6 @@ SS.iter <- function(exchange, ind, RRPP = TRUE, print.progress = TRUE) {
   n <- dims[1]
   p <- dims[2]
   w <- if(!is.null(exchange$weights)) exchange$weights else NULL
-  
   perms <- length(ind)
   
   if(k > 0) {
@@ -1057,6 +1059,7 @@ SS.iter <- function(exchange, ind, RRPP = TRUE, print.progress = TRUE) {
   
   Pcov <- exchange$Pcov
   
+  
   if(k > 0) {
     Qr <- lapply(reduced, function(x) if(!is.null(x$qr)) x$qr else qr(rep(0, n)))
     Qf <- lapply(full, function(x) x$qr)
@@ -1065,9 +1068,36 @@ SS.iter <- function(exchange, ind, RRPP = TRUE, print.progress = TRUE) {
     Qf <- list(Qf = full$qr)
   }
   
-    Ur <- lapply(Qr, function(x) qr.Q(x))
-    Uf <- lapply(Qf, function(x) qr.Q(x))
-    Ufull <- Uf[[max(1, k)]]
+  
+  Ur <- lapply(Qr, function(x) qr.Q(x))
+  Uf <- lapply(Qf, function(x) qr.Q(x))
+  Urs <- lapply(Ur, function(x) Matrix(round(x, 15), sparse = TRUE))
+  Ufs <- lapply(Uf, function(x) Matrix(round(x, 15), sparse = TRUE))
+  Hr <- lapply(Ur, function(x) 
+    forceSymmetric(Matrix(round(tcrossprod(x), 15), sparse = TRUE)))
+  Hf <- lapply(Uf, function(x) 
+    forceSymmetric(Matrix(round(tcrossprod(x), 15), sparse = TRUE)))
+  
+  # Linear model checkers
+  for(i in 1:max(1, k)) {
+    o.ur <- object.size(Ur[[i]])
+    o.urs <- object.size(Urs[[i]])
+    if(o.urs < o.ur) Ur[[i]] <- Urs[[i]]
+    o.uf <- object.size(Uf[[i]])
+    o.ufs <- object.size(Ufs[[i]])
+    if(o.ufs < o.uf) Uf[[i]] <- Ufs[[i]]
+  }
+  
+  for(i in 1:max(1, k)) {
+    h <- Hr[[i]]
+    sparse <- length(h@x)/h@Dim[1]/h@Dim[2]
+    if(sparse < 0.2) Ur[[i]] <- Hr[[i]]
+    h <- Hf[[i]]
+    sparse <- length(h@x)/h@Dim[1]/h@Dim[2]
+    if(sparse < 0.2) Uf[[i]] <- Hf[[i]]
+  }
+  
+  Ufull <-Uf[[max(1, k)]]
   
   int <- attr(Terms, "intercept")
   Unull <- if(!is.null(Pcov)) 
@@ -1079,18 +1109,17 @@ SS.iter <- function(exchange, ind, RRPP = TRUE, print.progress = TRUE) {
   
   yh0 <- fastFit(Unull, Y, n, p)
   r0 <- Y - yh0
-  
-  if(print.progress){
-    cat(paste("\nSums of Squares calculations:", perms, "permutations.\n"))
-    pb <- txtProgressBar(min = 0, max = perms+1, initial = 0, style=3)
-  }
-  
   FR <- lapply(1:max(1, k), function(j) list(fitted = fitted[[j]], 
                                              residuals = res[[j]]))
   rrpp.args <- list(FR = FR, ind.i = NULL)
   
   rrpp <- function(FR, ind.i) {
     lapply(FR, function(x) x$fitted + x$residuals[ind.i, ])
+  }
+  
+  if(print.progress) {
+    cat(paste("\nSums of Squares calculations:", perms, "permutations.\n"))
+    pb <- txtProgressBar(min = 0, max = perms+1, initial = 0, style=3)
   }
   
   ss <- function(ur, uf, y) c(sum(crossprod(ur, y)^2), sum(crossprod(uf, y)^2), 
@@ -1128,6 +1157,8 @@ SS.iter <- function(exchange, ind, RRPP = TRUE, print.progress = TRUE) {
   TSS <- matrix(sapply(result, "[[", "TSS"), max(1, k), perms)
   RSS.model <- matrix(sapply(result, "[[", "RSS.model"), max(1, k), perms)
   
+  if(print.progress)  close(pb)
+    
   res.names <- list(if(k > 0) trms else "Intercept", 
                     c("obs", paste("iter", 1:(perms-1), sep=".")))
   dimnames(SS) <- dimnames(RSS) <- dimnames(TSS) <- 
@@ -1135,21 +1166,22 @@ SS.iter <- function(exchange, ind, RRPP = TRUE, print.progress = TRUE) {
   
   if(all(is.na(SS))) RSS <- SS <- NULL
   
-  step <- perms + 1
-  if(print.progress) {
-    setTxtProgressBar(pb,step)
-    close(pb)
-  }
   list(SS = SS, RSS = RSS, TSS = TSS, RSS.model = RSS.model)
   
 }
+
 
 # SS.iterPP
 # workhorse for lm.rrpp, same as SS.iter, but with parallel processing
 # used in lm.rrpp
 
-SS.iterPP <- function(exchange, ind, RRPP = TRUE, print.progress = TRUE) {
-  cl <- detectCores() - 1
+SS.iterPP <- function(exchange, ind, RRPP = TRUE, print.progress = TRUE, 
+                      ParCores = TRUE) {
+  
+  if(is.logical(ParCores)) no_cores <- detectCores() - 1 else
+    no_cores <- min(detectCores() - 1, ParCores)
+  
+  Unix <- .Platform$OS.type == "unix"
   reduced <- exchange$reduced
   full <- exchange$full
   Terms <- exchange$Terms
@@ -1193,7 +1225,33 @@ SS.iterPP <- function(exchange, ind, RRPP = TRUE, print.progress = TRUE) {
   
   Ur <- lapply(Qr, function(x) qr.Q(x))
   Uf <- lapply(Qf, function(x) qr.Q(x))
-  Ufull <- Uf[[max(1, k)]]
+  Urs <- lapply(Ur, function(x) Matrix(round(x, 15), sparse = TRUE))
+  Ufs <- lapply(Uf, function(x) Matrix(round(x, 15), sparse = TRUE))
+  Hr <- lapply(Ur, function(x) 
+    forceSymmetric(Matrix(round(tcrossprod(x), 15), sparse = TRUE)))
+  Hf <- lapply(Uf, function(x) 
+    forceSymmetric(Matrix(round(tcrossprod(x), 15), sparse = TRUE)))
+  
+  # Linear model checkers
+  for(i in 1:max(1, k)) {
+    o.ur <- object.size(Ur[[i]])
+    o.urs <- object.size(Urs[[i]])
+    if(o.urs < o.ur) Ur[[i]] <- Urs[[i]]
+    o.uf <- object.size(Uf[[i]])
+    o.ufs <- object.size(Ufs[[i]])
+    if(o.ufs < o.uf) Uf[[i]] <- Ufs[[i]]
+  }
+  
+  for(i in 1:max(1, k)) {
+    h <- Hr[[i]]
+    sparse <- length(h@x)/h@Dim[1]/h@Dim[2]
+    if(sparse < 0.2) Ur[[i]] <- Hr[[i]]
+    h <- Hf[[i]]
+    sparse <- length(h@x)/h@Dim[1]/h@Dim[2]
+    if(sparse < 0.2) Uf[[i]] <- Hf[[i]]
+  }
+  
+  Ufull <-Uf[[max(1, k)]]
   
   int <- attr(Terms, "intercept")
   Unull <- if(!is.null(Pcov)) 
@@ -1206,10 +1264,8 @@ SS.iterPP <- function(exchange, ind, RRPP = TRUE, print.progress = TRUE) {
   yh0 <- fastFit(Unull, Y, n, p)
   r0 <- Y - yh0
   
-  if(print.progress){
-    cat(paste("\nSums of Squares calculations:", perms, "permutations.\n"))
-    pb <- txtProgressBar(min = 0, max = perms+1, initial = 0, style=3)
-  }
+  if(print.progress)
+    cat("\nProgress bar not available for sums of squares calculations...\n")
   
   FR <- lapply(1:max(1, k), function(j) list(fitted = fitted[[j]], 
                                              residuals = res[[j]]))
@@ -1222,29 +1278,63 @@ SS.iterPP <- function(exchange, ind, RRPP = TRUE, print.progress = TRUE) {
   ss <- function(ur, uf, y) c(sum(crossprod(ur, y)^2), sum(crossprod(uf, y)^2), 
                               sum(y^2) - sum(crossprod(Ufull, y)^2))
   
-  result <- mclapply(1:perms, mc.cores = cl, function(j){
-    x <-ind[[j]]
-    rrpp.args$ind.i <- x
-    Yi <- do.call(rrpp, rrpp.args)
-    y <- yh0 + r0[x,]
-    yy <- sum(y^2)
-    if(k > 0) {
-      res <- vapply(1:k, function(j){
-        ss(Ur[[j]], Uf[[j]], Yi[[j]])
-      }, numeric(3))
-      
-      SSr <- res[1, ]
-      SSf <- res[2, ]
-      RSS <- res[3, ]
-      
-      TSS <- yy - sum(crossprod(Unull, y)^2)
-      TSS <- rep(TSS, k)
-      SS = SSf - SSr
-    } else SSr <- SSf <- SS <- RSS <- TSS <- NA
-    RSS.model <- yy - sum(crossprod(Ufull, y)^2)
-    if(k == 0) TSS <- RSS.model
-    list(SS = SS, RSS = RSS, TSS = TSS, RSS.model = RSS.model)
-  })
+  if(Unix) {
+    result <- mclapply(1:perms, mc.cores = no_cores, function(j){
+      x <-ind[[j]]
+      rrpp.args$ind.i <- x
+      Yi <- do.call(rrpp, rrpp.args)
+      y <- yh0 + r0[x,]
+      yy <- sum(y^2)
+      if(k > 0) {
+        res <- vapply(1:k, function(j){
+          ss(Ur[[j]], Uf[[j]], Yi[[j]])
+        }, numeric(3))
+        
+        SSr <- res[1, ]
+        SSf <- res[2, ]
+        RSS <- res[3, ]
+        
+        TSS <- yy - sum(crossprod(Unull, y)^2)
+        TSS <- rep(TSS, k)
+        SS = SSf - SSr
+      } else SSr <- SSf <- SS <- RSS <- TSS <- NA
+      RSS.model <- yy - sum(crossprod(Ufull, y)^2)
+      if(k == 0) TSS <- RSS.model
+      list(SS = SS, RSS = RSS, TSS = TSS, RSS.model = RSS.model)
+    })
+    
+  } else {
+    
+    cl <- makeCluster(no_cores)
+    clusterExport(cl, "ind",
+                  envir=environment())
+    
+    result <- parLapply(cl, 1:perms, function(j){
+      x <-ind[[j]]
+      rrpp.args$ind.i <- x
+      Yi <- do.call(rrpp, rrpp.args)
+      y <- yh0 + r0[x,]
+      yy <- sum(y^2)
+      if(k > 0) {
+        res <- vapply(1:k, function(j){
+          ss(Ur[[j]], Uf[[j]], Yi[[j]])
+        }, numeric(3))
+        
+        SSr <- res[1, ]
+        SSf <- res[2, ]
+        RSS <- res[3, ]
+        
+        TSS <- yy - sum(crossprod(Unull, y)^2)
+        TSS <- rep(TSS, k)
+        SS = SSf - SSr
+      } else SSr <- SSf <- SS <- RSS <- TSS <- NA
+      RSS.model <- yy - sum(crossprod(Ufull, y)^2)
+      if(k == 0) TSS <- RSS.model
+      list(SS = SS, RSS = RSS, TSS = TSS, RSS.model = RSS.model)
+    })
+    stopCluster(cl)
+  }
+  
   
   SS <- matrix(sapply(result, "[[", "SS"), max(1, k), perms, byrow = TRUE)
   RSS <- matrix(sapply(result, "[[", "RSS"), max(1, k), perms, byrow = TRUE)
@@ -1262,6 +1352,7 @@ SS.iterPP <- function(exchange, ind, RRPP = TRUE, print.progress = TRUE) {
   list(SS = SS, RSS = RSS, TSS = TSS, RSS.model = RSS.model)
   
 }
+
 
 # anova.parts
 # construct an ANOVA tablefrom random SS output
@@ -1394,6 +1485,8 @@ beta.boot.iter <- function(fit, ind) {
   
   Qf <- fit$LM$QR
   Hf <- tcrossprod(solve(qr.R(Qf)), qr.Q(Qf))
+  Hfs <- Matrix(round(Hf, 15), sparse = TRUE)
+  if(object.size(Hfs) < object.size(Hf)) Hf <- Hfs
   
   betas <- lapply(1:perms, function(j){
     x <-ind[[j]]
@@ -1461,6 +1554,12 @@ beta.iter <- function(exchange, ind, RRPP = TRUE, print.progress = TRUE) {
   
   Qf <- if(k > 0) lapply(full, function(x) x$qr) else list(Qf = full$qr)
   Hf <- lapply(Qf, function(x) tcrossprod(solve(qr.R(x)), qr.Q(x)))
+  Hfs <- lapply(Hf, function(x) Matrix(round(x, 15), sparse = TRUE))
+  for(i in 1:max(1,k)) {
+    if(object.size(Hfs[[i]]) < object.size(Hf[[i]]))
+      Hf[[i]] <- Hfs[[i]]
+  }
+  
 
   betas <- lapply(1:perms, function(j){
     step <- j
@@ -1468,7 +1567,7 @@ beta.iter <- function(exchange, ind, RRPP = TRUE, print.progress = TRUE) {
     x <-ind[[j]]
     rrpp.args$ind.i <- x
     Yi <- do.call(rrpp, rrpp.args)
-    Map(function(h, y)  h %*% y, Hf, Yi) 
+    Map(function(h, y)  as.matrix(h %*% y), Hf, Yi) 
   
   })
 
@@ -1529,8 +1628,13 @@ out
 }
 
 
-beta.iterPP <- function(exchange, ind, RRPP = TRUE, print.progress = TRUE) {
-  cl <- detectCores() - 1
+beta.iterPP <- function(exchange, ind, RRPP = TRUE, print.progress = TRUE, 
+                        ParCores =  TRUE) {
+  
+  if(is.logical(ParCores)) no_cores <- detectCores() - 1 else
+    no_cores <- min(detectCores() - 1, ParCores)
+  
+  Unix <- .Platform$OS.type == "unix"
   reduced <- exchange$reduced
   full <- exchange$full
   Terms <- exchange$Terms
@@ -1574,20 +1678,41 @@ beta.iterPP <- function(exchange, ind, RRPP = TRUE, print.progress = TRUE) {
   }
   
   if(print.progress){
-    cat(paste("\nCoefficients estimation:", perms, "permutations.\n"))
-    pb <- txtProgressBar(min = 0, max = perms+1, initial = 0, style=3)
+    cat("\nProgress bar not available for coefficients estimation...\n")
   }
   
   Qf <- if(k > 0) lapply(full, function(x) x$qr) else list(Qf = full$qr)
   Hf <- lapply(Qf, function(x) tcrossprod(solve(qr.R(x)), qr.Q(x)))
+  Hfs <- lapply(Hf, function(x) Matrix(round(x, 15), sparse = TRUE))
+  for(i in 1:max(1,k)) {
+    if(object.size(Hfs[[i]]) < object.size(Hf[[i]]))
+      Hf[[i]] <- Hfs[[i]]
+  }
   
-  betas <- mclapply(1:perms, mc.cores = cl, function(j){
-    x <-ind[[j]]
-    rrpp.args$ind.i <- x
-    Yi <- do.call(rrpp, rrpp.args)
-    Map(function(h, y)  h %*% y, Hf, Yi) 
+  if(Unix) {
+    betas <- mclapply(1:perms, mc.cores = no_cores, function(j){
+      x <-ind[[j]]
+      rrpp.args$ind.i <- x
+      Yi <- do.call(rrpp, rrpp.args)
+      Map(function(h, y)  as.matrix(h %*% y), Hf, Yi) 
+      
+    })
     
-  })
+  } else {
+    
+    cl <- makeCluster(no_cores)
+    clusterExport(cl, "rrpp.args")
+    
+    betas <- parLapply(cl, 1:perms, function(j){
+      x <-ind[[j]]
+      rrpp.args$ind.i <- x
+      Yi <- do.call(rrpp, rrpp.args)
+      Map(function(h, y)  h %*% y, Hf, Yi) 
+      
+    })
+    stopCluster(cl)
+  }
+
   
   beta.mats <- betas
   
