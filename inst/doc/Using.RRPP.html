@@ -11,7 +11,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 
-<meta name="date" content="2021-03-29" />
+<meta name="date" content="2021-10-09" />
 
 <title>Using RRPP</title>
 
@@ -139,7 +139,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 
 <h1 class="title toc-ignore">Using RRPP</h1>
-<h4 class="date">2021-03-29</h4>
+<h4 class="date">2021-10-09</h4>
 
 
 
@@ -152,7 +152,6 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 PupfishHeads (Gilbert, 2016)
 PlethMorph (Adams &amp; Collyer, 2018)</code></pre>
 <p>The first two datasets contain landmark-based geometric morphometric data collected from museum samples of Pecos pupfish (<em>Cyprinodon pecosensis</em>), representing body shape and cranial morphology, respectively. Within both data sets, the <code>$coords</code> objects are matrices of Procrustes residuals obtained from generalized Procrustes analysis (GPA) of configurations of anatomical landmarks. For the purposes of this example, it is sufficient to recognize that Procrustes residuals embody a highly multivariate dataset representing shape (see the R package, geomorph). The third data set contains averaged linear measurements of 37 species of Plethodontid salamanders, plus a covariance matrix based on a Brownian model of evolution, given the phylogenetic relationship among the species (Adams &amp; Collyer, 2018, for details).</p>
-<hr />
 <p><strong><em>Example: Pupfish Cranial Morphology and Mixed-Model ANOVA</em></strong></p>
 <p>In the first example we use a univariate dependent variable (head size, measured as the centroid size of the cranial landmark configuration; Bookstein, 1991) with a mixed-model design. The following code highlights the analytical steps, with results categorized in Fig. 1:</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(RRPP)</span>
@@ -290,16 +289,16 @@ PlethMorph (Adams &amp; Collyer, 2018)</code></pre>
 ##           based on
 ## 1000 random permutations using RRPP 
 ## 
-##                            d.obs UCL (95%)         Zd Pr(&gt;d)
-## (Intercept)           3.12716415 2.9812637  4.6631073  0.001
-## sexMale               0.09162777 0.1395840 -0.1259203  0.542
-## localitySH            0.07571832 0.2054385 -0.2092529  0.610
-## localitySH:year1998   0.06402169 0.1365264  0.4170950  0.355
-## localityLake:year1999 0.35681331 0.1328685  3.7362990  0.001
-## localitySH:year1999   0.01328613 0.1325900 -1.1032264  0.856
-## localitySH:year2000   0.07165589 0.1062194  0.9403694  0.196
-## localityLake:year2001 0.23035259 0.1391142  2.5419582  0.003
-## localityLake:year2002 0.31050534 0.1347989  3.3397163  0.001</code></pre>
+##                            d.obs  UCL (95%)         Zd Pr(&gt;d)
+## (Intercept)           2.96477681 3.04339947 -3.2821898  0.998
+## sexMale               0.09579938 0.05535808  2.6097241  0.003
+## localitySH            0.09164189 0.05788327  2.5097854  0.004
+## localitySH:year1998   0.06402169 0.13652635  0.4170950  0.355
+## localityLake:year1999 0.35681331 0.13286852  3.7362990  0.001
+## localitySH:year1999   0.01328613 0.13259002 -1.1032264  0.856
+## localitySH:year2000   0.07165589 0.10621936  0.9403694  0.196
+## localityLake:year2001 0.23035259 0.13911422  2.5419582  0.003
+## localityLake:year2002 0.31050534 0.13479886  3.3397163  0.001</code></pre>
 <p>This function produces a table much like <code>summary.lm</code> output, but with bootstrap-generated confidence intervals of coefficients.</p>
 <p>It might be of interest to visualize model predictions for certain effects, holding constant other effects. For example, if we want to look at confidence intervals to compare male and female head sizes, holding constant the effects of locality and sampling period, we could do the following:</p>
 <div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>sizeDF <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">sex =</span> <span class="fu">c</span>(<span class="st">&quot;Female&quot;</span>, <span class="st">&quot;Male&quot;</span>))</span>
@@ -390,7 +389,6 @@ PlethMorph (Adams &amp; Collyer, 2018)</code></pre>
 ## 
 ## Call: lm.rrpp(f1 = logHeadSize ~ sex + locality/year, SS.type = &quot;III&quot;,  
 ##     data = PupfishHeads, print.progress = FALSE)</code></pre>
-<hr />
 <p><strong><em>Example: Pupfish Body Shape and High-Dimensional Data</em></strong></p>
 <p>In the second example, we highlight the <code>RRPP</code> ability to efficiently handle large data computations. For this demonstration, a 54(<em>n</em>) × 112 (<em>p</em>) matrix of Procrustes residuals are the data. In every one of the 1,000 random permutations, RRPP shuffles residual vectors the same way for four different null models, estimates coefficients for four different full models, estimates the <em>SS</em> as the difference between residual <em>SS</em> (<em>RSS</em>) for four null-full model comparisons, and calculates the total <em>SS</em>, before calculating <em>MS</em>, <em>R</em><sup>2</sup>, <em>F</em>, Cohen’s <em>f</em><sup>2</sup>, and Euclidean distances of coefficient vectors across all 1,000 permutations. This process, plus packaging of results, took approximately 0.5 seconds on a notebook computer, without any parallel processing. In the second example, the initial steps are quite the same as the first example:</p>
 <div class="sourceCode" id="cb30"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(Pupfish)</span>
@@ -759,8 +757,8 @@ PlethMorph (Adams &amp; Collyer, 2018)</code></pre>
 ## Linear Model fit with lm.rrpp
 ## 
 ## Number of observations: 54
-## Number of dependent variables: 53 (dimensions of data after PCoA of distance matrix)
-## Data space dimensions: 53 (dimensions of data after PCoA of distance matrix)
+## Number of dependent variables: 53  
+## Data space dimensions: 53  
 ## Sums of Squares and Cross-products: Type I
 ## Number of permutations: 1000
 ## 

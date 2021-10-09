@@ -1,3 +1,20 @@
+
+# CHANGES IN RRPP 1.0.0.9000
+
+### NEW FEATURES
+* `na.omit.rrpp.data.frame` added for handling missing data.
+* `looCV` function added as diagnostic tool.
+
+### OTHER CHANGES
+* `coef.lm.rrpp` updated to provide results based on `SS.type`, rather than
+type III SS, only.
+* Complete scanning and updating of code to identify and fix names lost due to matrix calculations or vector/matrix conversions in `R`.
+
+### BUG FIXES
+* Fixed missing coefficients for GLS estimation in `coef.lm.rrpp`
+* Fixed missing data issue in `lm.rrpp` (passed onto `lm`).
+* Fixed some `as.matrix` names dropping in support code.
+
 # CHANGES IN RRPP 1.0.0 (Major Release)
 
 ### NEW FEATURES

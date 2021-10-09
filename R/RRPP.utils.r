@@ -1,3 +1,79 @@
+## rrpp.data.frame
+
+#' Handle missing values in rrpp.data.frame objects
+#'
+#' @param object object (from \code{\link{rrpp.data.frame}})
+#' @param ... further arguments (currently not used)
+#' @method na.omit rrpp.data.frame
+#' @export
+#' @author Michael Collyer
+#' @keywords utilities
+#' @examples
+#' y <- matrix(rnorm(15), 5, 3)
+#' x <- rnorm(5)
+#' rdf <- rrpp.data.frame(x = x, y = y, d = dist(y))
+#' rdf$x[1] <- NA # create missing data
+#' rdf
+#' 
+#' ndf <- na.omit(rdf)
+#' ndf
+
+na.omit.rrpp.data.frame <- function(object, ...) {
+  nms <- names(object)
+  classes <- unlist(lapply(object, function(x) class(x)[1]))
+  subDF <- object[!is.na(match(classes, c("numeric", "factor", "integer", 
+                                          "character", "matrix", "logical")))]
+  sub.classes <- classes[!is.na(match(classes, c("numeric", "factor", "integer", 
+                                                 "character", "matrix", "logical")))]
+  oDF <- object[is.na(match(classes, c("numeric", "factor", "integer", 
+                                       "character", "matrix", "logical")))]
+  o.classes <- classes[is.na(match(classes, c("numeric", "factor", "integer", 
+                                              "character", "matrix", "logical")))]
+  subDF <- as.data.frame(subDF)
+  newDF <- na.omit(subDF)
+  omits <- attr(newDF, "na.action")
+  
+  for(i in 1:length(o.classes)){
+    
+    if(o.classes[[i]] == "array") {
+      dims <- dim(oDF[[i]])
+      if(length(dims) != 3)
+        stop("Data are neither a vector, matrix, nor appopriate array.\n",
+             call. = FALSE)
+      oDF[[i]] <- oDF[[i]][,,-omits]
+    }
+    
+    if(o.classes[[i]] == "phylo") {
+      
+      cat("Part of this data frame is a class phylo object\n")
+      cat("It is currently not possible to prune the tree according to missing data\n")
+      cat("The following actions are recommended:\n")
+      cat("1. Make a data frame with all objects or variables except the phylo object\n")
+      cat("2. Omit missing data to create a new data frame\n")
+      cat("3. Add a pruned tree to the new data frame; e.g., newDF$tree <- myPrunedTree\n")
+      stop("na.omit terminated", call. = FALSE)
+
+        stop("Data are netieher a vector, matrix, nor appopriate array.\n",
+             call. = FALSE)
+      oDF[[i]] <- oDF[[i]][,,-omits]
+    }
+    
+    if(o.classes[[i]] == "dist") {
+      
+      d <- as.matrix(oDF[[i]])
+      d <- d[-omits, -omits]
+      oDF[[i]] <- as.dist(d)
+    }
+    
+  }
+  
+  outDF <- c(as.list(newDF), oDF)
+  class(outDF) <- "rrpp.data.frame"
+  attr(outDF, "na.action") <- omits
+  outDF[nms]
+  
+}
+
 ## lm.rrpp
 
 #' Print/Summary Function for RRPP
@@ -2071,6 +2147,8 @@ add.trajectories <- function(TP,
   
 }
 
+# ordinate
+
 #' Print/Summary Function for RRPP
 #'
 #' @param x Object from \code{\link{ordinate}}
@@ -2144,6 +2222,7 @@ summary.ordinate <- function(object, ...){
   invisible(out)
 }
 
+
 #' Print/Summary Function for RRPP
 #'
 #' @param x Object from \code{\link{summary.ordinate}}
@@ -2184,12 +2263,12 @@ print.summary.ordinate <- function(x, ...){
 plot.ordinate <- function(x, axis1 = 1, axis2 = 2, flip = NULL, ...) {
   options(warn = -1)
   if(NCOL(x$x) == 1) 
-    stop("Only one component  No plotting capability with this function.\n", 
+    stop("Only one component.  No plotting capability with this function.\n", 
                           call. = FALSE)
   v <- x$d/sum(x$d)
   if(!is.null(x$RV)) rv <- x$RV
   
-  pcdata <- as.matrix(x$x[, c(axis1, axis2)])
+  pcdata <- x$x[, c(axis1, axis2)]
   if(!is.null(flip)) {
     if(length(flip) > 2) flip <- flip[1:2]
     flip <- flip[(flip %in% 1:ncol(pcdata))]
@@ -2231,3 +2310,148 @@ plot.ordinate <- function(x, axis1 = 1, axis2 = 2, flip = NULL, ...) {
   
 }
 
+
+# looCV
+
+#' Print/Summary Function for RRPP
+#'
+#' @param x Object from \code{\link{looCV}}
+#' @param ... Other arguments passed onto print.looCV
+#' @method print looCV
+#' @export
+#' @author Michael Collyer
+#' @keywords utilities
+#' 
+print.looCV <- function(x, ...){
+  cat("Cross-validated scores for", length(x$d$cv), "components,\n")
+  cat("based on", NROW(x$scores$cv), "observations.\n\n")
+  cat("Cross-validated scores should not be used as data in subsequent analyses.\n")
+} 
+
+#' Print/Summary Function for RRPP
+#'
+#' @param object Object from \code{\link{looCV}}
+#' @param ... Other arguments passed onto print.looCV
+#' @method summary looCV
+#' @export
+#' @author Michael Collyer
+#' @keywords utilities
+#' 
+summary.looCV <- function(object, ...){
+  x <- object
+  print.looCV(x, ...)
+  dobs <- x$d$obs
+  dcv <- x$d$cv
+  pobs <- dobs/sum(dobs)
+  cpobs <- cumsum(dobs)/sum(dobs)
+  pcv <- dcv/sum(dcv)
+  cpcv <- cumsum(dcv)/sum(dcv)
+  
+  robs <- as.data.frame(rbind(dobs, pobs, cpobs))
+  robs <- robs[, 1:min(length(dobs), NCOL(x$scores$obs), NCOL(robs))]
+  
+  rcv <- as.data.frame(rbind(dcv, pcv, cpcv))
+  rcv <- rcv[, 1:min(length(dcv), NCOL(x$scores$cv), NCOL(rcv))]
+  
+  colnames(robs) <- colnames(rcv) <- colnames(x$x)[1:NCOL(robs)]
+  rownames(robs) <- rownames(rcv) <- c("Eigenvalue", 
+                   "Proportion of Variance", "Cumulative Proportion")
+  
+  cat("\nObserved eigenvalues")
+  print(robs)
+  cat("\nCross-validated eigenvalues")
+  print(rcv)
+  
+}
+
+
+#' Plot Function for RRPP
+#' 
+#' @param x An object of class \code{\link{looCV}}
+#' @param axis1 A value indicating which component should be 
+#' displayed as the X-axis (default = C1)
+#' @param axis2 A value indicating which component should be 
+#' displayed as the Y-axis (default = C2)
+#' @param flip An argument that if not NULL can be used to flip 
+#' components in the plot.  
+#' The values need to match axis1 or axis2.  For example, if axis1 = 3 
+#' and axis2 = 4, flip = 1 will not
+#' change either axis; flip = 3 will flip only the horizontal axis; 
+#' flip = c(3, 4) will flip both axes.  Axis will only be flipped in first
+#' plot.
+#' @param ... other arguments passed to plot (helpful to employ
+#' different colors or symbols for different groups).  See
+#' @method plot looCV
+#' @export
+#' @author Michael Collyer
+#' @keywords utilities
+#' @keywords visualization
+plot.looCV<- function(x, axis1 = 1, axis2 = 2, 
+                      flip = NULL, ...) {
+  options(warn = -1)
+  if(NCOL(x$scores$obs) == 1) 
+    stop("Only one component.  No plotting capability with this function.\n", 
+         call. = FALSE)
+  opars <- par()
+  plot.args <- list(...)
+  
+  if(axis1 > length(x$d$obs) || axis2 > length(x$d$obs))
+    stop("Choice of at least one axis exceeds total axes possible.\n",
+         call. = FALSE)
+  
+  par(mfrow = c(1, 3))
+  
+  pcdata <- x$scores$obs[, c(axis1, axis2)]
+  
+  if(!is.null(flip)) {
+    if(length(flip) > 2) flip <- flip[1:2]
+    flip <- flip[(flip %in% 1:ncol(pcdata))]
+    if(length(flip > 0)) pcdata[, flip] <- pcdata[, flip] * -1
+  }
+  
+  plot.args$main <- NULL
+  plot.args$x <- pcdata[, 1]
+  plot.args$y <- pcdata[, 2]
+  plot.args$xlab <- paste("PC", axis1, "for fitted values:", 
+                          round(x$d$obs[axis1]/sum(x$d$obs) * 100, 2),
+                          "%")
+  plot.args$ylab <- paste("PC", axis2, "for fitted values:", 
+                          round(x$d$obs[axis2]/sum(x$d$obs) * 100, 2),
+                          "%")
+  do.call(plot, plot.args)
+  abline(h = 0, lty = 3)
+  abline(v = 0, lty = 3)
+  title("Observed PC values")
+  
+  plot.args$x <- as.matrix(x$scores$cv)[, axis1]
+  plot.args$y <- as.matrix(x$scores$cv)[, axis2]
+  plot.args$xlab <- paste("PC", axis1, "for fitted values:", 
+                          round(x$d$cv[axis1]/sum(x$d$cv) * 100, 2),
+                          "%")
+  plot.args$ylab <- paste("PC", axis2, "for fitted values:", 
+                          round(x$d$cv[axis2]/sum(x$d$cv) * 100, 2),
+                          "%")
+  do.call(plot, plot.args)
+  abline(h = 0, lty = 3)
+  abline(v = 0, lty = 3)
+  title("Cross-validated PC values")
+  
+  k <- seq(1, min(c(length(x$d$obs), length(x$d$cv))))
+  plot.args$x <-  x$d$obs[k]
+  plot.args$y <- x$d$cv[k]
+  plot.args$xlab <- "Observed eigenvalues"
+  plot.args$ylab <- "Cross-validated eigenvalues"
+  plot.args$pch <- 19
+  plot.args$cex = 1
+  plot.args$col = 1
+  emax <- max(c(x$d$obs, x$d$cv))
+  plot.args$xlim <- c(0, emax)
+  plot.args$ylim <- c(0, emax)
+  plot.args$asp <- 1
+  do.call(plot, plot.args)
+  title("Values close to 1:1 imply robust observed scores", 
+        cex.main = 0.6)
+  abline(0, 1, lty = 3)
+ 
+  par(opars)
+}
