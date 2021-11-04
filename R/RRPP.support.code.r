@@ -109,7 +109,8 @@ NULL
 #' (SVL) as species size, tail length, head length, snout to eye length, 
 #' body width, forelimb length,
 #' and hind limb length, all measured in mm.  A grouping variable is also 
-#' included for functional guild size.  
+#' included for functional guild size.  A variable for species names is also 
+#' included.
 #' The data set also includes a phylogenetic covariance matrix based on a 
 #' Brownian model of evolution, to assist in 
 #' generalized least squares (GLS) estimation.
@@ -159,7 +160,6 @@ NULL
 #' See \code{\link{lm.rrpp}} for examples.
 #'
 #' @param ... Components (objects) to combine in the data frame.
-#' @keywords utilities
 #' @export
 #' @author Michael Collyer
 #' @examples
@@ -183,7 +183,7 @@ NULL
 #' fit <- lm.rrpp(d ~ x, data = rdf)
 #' summary(fit)
 
-rrpp.data.frame<- function(...){
+rrpp.data.frame<- function(...) {
   dots <- list(...)
   if(length(dots) == 1 && is.data.frame(dots[[1]])) {
     dots <- dots[[1]]
@@ -233,6 +233,7 @@ rrpp.data.frame<- function(...){
       stop("Inputs have different numbers of observations")
     class(dots) <- c("rrpp.data.frame")
   }
+
   dots
 }
 
@@ -240,13 +241,33 @@ rrpp.data.frame<- function(...){
 
 # SUPPORT FUNCTIONS
 
-
 # lm.rrpp subfunctions
 # lm-like fit modified for all submodels
 # general workhorse for all 'lm.rrpp' functions
 # used in all 'lm.rrpp' functions
 
-makeDF <- function(form, data, n) {
+get.names <- function(Y) {
+  nms <- if(is.vector(Y)) names(Y) else if(inherits(Y, "dist")) attr(Y, "Labels") else
+    if(inherits(Y, "matrix")) rownames(Y) else dimnames(Y)[[3]]
+  nms
+}
+
+get.names.from.list <- function(L) {
+  temp <- lapply(L, get.names)
+  check <- which(!sapply(temp, is.null))
+  temp <- if(length(check) > 0) temp[check] else NULL
+  nms <- if(!is.null(temp)) temp[[1]] else NULL
+  nms
+}
+
+add.names <- function(Y, nms) {
+  if(is.vector(Y)) names(Y) <- nms
+  if(inherits(Y, "matrix")) rownames(Y) <- nms
+  if(inherits(Y, "dist")) attr(Y, "Labels") <- nms
+  Y
+}
+
+makeDF <- function(form, data, n, nms) {
   
   if(!is.list(data)) 
     stop("\nThe data frame provide is not class rrpp.data.frame, 
@@ -282,6 +303,8 @@ makeDF <- function(form, data, n) {
    
   dat <- if(length(dat) == 0)  NULL else as.data.frame(dat)
   
+  if(!is.null(dat)) rownames(dat) <- nms
+  
   dat
 }
   
@@ -307,9 +330,7 @@ lm.args.from.formula <- function(cl){
   Dy <- NULL
   Y <- try(eval(lm.args$formula[[2]], lm.args$data, parent.frame()),
            silent = TRUE)
-  
-  nms <- if(is.vector(Y)) names(Y) else if(inherits(Y, "dist")) attr(Y, "Labels") else
-      if(inherits(Y, "matrix")) rownames(Y) else dimnames(Y)[[3]]
+  nmsY <- get.names(Y)
   
   if(inherits(Y, "try-error"))
     stop("Data are missing from either the data frame or global environment.\n", 
@@ -317,7 +338,6 @@ lm.args.from.formula <- function(cl){
   
   if(is.vector(Y)) {
     Y <- as.matrix(Y)
-    if(!is.null(nms)) rownames(Y) <- nms
     Dy <- NULL
   }
   
@@ -348,33 +368,37 @@ lm.args.from.formula <- function(cl){
   form <- update(form, Y ~.,)
   lm.args$formula <- form
   
+  Y <- add.names(Y, nmsY)
   n <- NROW(Y)
   
   if(!is.null(lm.args$data)) {
-    lm.args$data <- makeDF(form, lm.args$data, n)
+    nmsDF <- if(inherits(lm.args$data, "data.frame"))  
+      attr(lm.args$data, "row.names") else 
+        get.names.from.list(lm.args$data)
+
+    lm.args$data <- makeDF(form, lm.args$data, n, nmsDF)
   }
   
   if(is.null(lm.args$data)) {
     lm.args$data <- data.frame(Int = rep(1, n))
     lm.args$data$Y <- as.matrix(Y)
     lm.args$data <- lm.args$data[-1]
+    rownames(lm.args$data) <-nmsY
   }
   
   lm.args$data$Y <- Y
   
   dfmat <- try(as.matrix(lm.args$data), silent = TRUE)
   if(!inherits(dfmat, "try-error"))
-    rownames(lm.args$data) <- nms
-  
-  f <- try(do.call(lm, lm.args), silent = TRUE)
+    f <- try(do.call(lm, lm.args), silent = TRUE)
 
   if(inherits(f, "try-error")) 
-    stop("Variables or data are missing from either the data frame or 
-           global environment\n", 
+    stop("Variables or data might be missing from either the data frame or 
+           global environment, or a linear model fit just does not work...\n", 
          call. = FALSE)
   
-  Y = as.matrix(f$y)
-  rownames(Y) <- nms
+  Y <- as.matrix(f$y)
+  Y <- add.names(Y, rownames(f$model))
   out <- list(Terms = f$terms, model = f$model, Y = Y)
   if(!is.null(Dy)) {
     d <- as.matrix(Dy)

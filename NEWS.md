@@ -1,3 +1,8 @@
+# CHANGES IN RRPP 1.1.2
+
+### BUG FIXES
+* Fixed a few issues with dropped names when working with `data.frame` objects.
+
 # CHANGES IN RRPP 1.1.1
 
 ### BUG FIXES
