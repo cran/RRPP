@@ -1,8 +1,8 @@
-421d66ad132418ec09dcc809027b6690 *DESCRIPTION
+32b01c5f2b76bb85e14aabd36809419c *DESCRIPTION
 af12c8f8ca9fc63073480cdaba995a56 *NAMESPACE
-52e687fb7de941e18acb4bc367c667d1 *NEWS.md
+38751e28181782f1525a6ff2ee3eabc8 *NEWS.md
 4c5a86dee8726748a063a00cd63f303c *R/RRPP.support.code.r
-349a0e95cade8cb350992364ec5f84d9 *R/RRPP.utils.r
+c801f830b61bc3f450963929cc86f0a0 *R/RRPP.utils.r
 a110900330d278eba804f1e1cfb0d248 *R/add.tree.r
 f32134cc27403cea765bc84785d571a3 *R/anova.lm.rrpp.r
 12a242809b917dc77a5462854f008574 *R/coef.lm.rrpp.r
@@ -25,13 +25,13 @@ cc73a1467ca5f48d52a03686d50ca8d7 *data/PlethMorph.rda
 4b4ee52bfcac42caf2b6b3c506af6db0 *data/Pupfish.rda
 b7ceda4ee18eb3d0d3f966360dc02936 *data/PupfishHeads.rda
 0033a37910a893b33a05c44e405022e0 *data/motionpaths.rda
-4b9ec9953a6af5354c47d2f9c8ff5922 *inst/CITATION
+54f64a8d06d6981b666953045751867f *inst/CITATION
 ffe064f8e355aeaa59384288e1fa49e2 *inst/doc/ANOVA.vs.MANOVA.R
 eb473a6d066dda15f7d3bb2d9a6789a8 *inst/doc/ANOVA.vs.MANOVA.Rmd
-0592e8842525fb23d9a3495ce1d8d2a0 *inst/doc/ANOVA.vs.MANOVA.html
+9c18d2f5acf309ed62b0d1b7e5b7e2a4 *inst/doc/ANOVA.vs.MANOVA.html
 94a6a86ee9d0f970fbf911a228e5f4c4 *inst/doc/Using.RRPP.R
-ac68aad9cea609ec475b58ab6334adf0 *inst/doc/Using.RRPP.Rmd
-012ad98defc5c96688920bab1715d538 *inst/doc/Using.RRPP.html
+6b6cb384c7c0985b0097368070ac4f6e *inst/doc/Using.RRPP.Rmd
+572c2f9163520fa2f5bbca31aa2d0a5c *inst/doc/Using.RRPP.html
 be7cd478ec8f194ca3bfb4ea80dc9aa4 *man/PlethMorph.Rd
 8dc1d16560450c0cfd709bed8c735f0d *man/Pupfish.Rd
 d764e38c7e273adb4a6a884f2a8d6f1d *man/PupfishHeads.Rd
@@ -94,4 +94,4 @@ e52a8af2dc8b337878160602b227ab75 *man/vec.cor.matrix.Rd
 d631691a132b8995618e408c3c67a193 *tests/testthat.R
 f3de6473ea0407d6d28818dbfb320fd2 *tests/testthat/test-RRPP.R
 eb473a6d066dda15f7d3bb2d9a6789a8 *vignettes/ANOVA.vs.MANOVA.Rmd
-ac68aad9cea609ec475b58ab6334adf0 *vignettes/Using.RRPP.Rmd
+6b6cb384c7c0985b0097368070ac4f6e *vignettes/Using.RRPP.Rmd
