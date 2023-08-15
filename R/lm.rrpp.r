@@ -144,6 +144,12 @@
 #' main effects should precede subsequent main effects
 #' @param RRPP A logical value indicating whether residual randomization 
 #' should be used for significance testing
+#' @param full.resid A logical value for whether to use the full model residuals, only 
+#' (sensu ter Braak, 1992). This only works if RRPP = TRUE and SS.type = III.  
+#' Rather than permuting reduced model residuals,
+#' this option permutes only the full model residuals in every random permutation of RRPP.
+#' @param block An optional factor for blocks within which to restrict resampling
+#' permutations.
 #' @param SS.type A choice between type I (sequential), type II 
 #' (hierarchical), or type III (marginal)
 #' sums of squares and cross-products computations.
@@ -163,9 +169,13 @@
 #' except one.  If FALSE, only one core is used. A numeric value directs the number of cores to 
 #' use, but one core will always be spared.  If a predefined socket cluster (Windows) is provided,
 #' the cluster information will be passed to \code{parallel}.
+#' @param verbose A logical value to indicate if all possible output from an analysis 
+#' should be retained.  Generally this should be FALSE, unless one wishes to extract, e.g.,
+#' all possible terms, model matrices, QR decomposition, or random permutation schemes.
 #' @param ... Arguments typically used in \code{\link{lm}}, such as 
 #' weights or offset, passed on to
-#' \code{rrpp.fit} for estimation of coefficients.  If both weights and 
+#' \code{LM.fit} (an internal RRPP function) for estimation of coefficients.  
+#' If both weights and 
 #' a covariance matrix are included,
 #' weights are ignored (since inverses of weights are the diagonal elements 
 #' of weight matrix, used in lieu
@@ -222,8 +232,12 @@
 #' anova: group-clade aggregation, biological 
 #' challenges, and a refined permutation procedure. Evolution. 72:1204-1215.
 #' @seealso \code{procD.lm} and \code{procD.pgls} within \code{geomorph}; 
+#' @references ter Braak, C.J.F. 1992. Permutation versus bootstrap significance tests in 
+#' multiple regression and ANOVA. pp .79–86 In Bootstrapping and Related Techniques. eds K-H. Jockel, 
+#' G. Rothe & W. Sendler.Springer-Verlag, Berlin.
 #' \code{\link[stats]{lm}} for more on linear model fits.
 #' @examples
+#' \dontrun{
 #' 
 #' # Examples use geometric morphometric data
 #' # See the package, geomorph, for details about obtaining such data
@@ -232,14 +246,9 @@
 #' names(PupfishHeads)
 #' 
 #' # Head Size Analysis (Univariate)-------------------------------------------------------
-#' 
-#' # Note: one should increase RRPP iterations but a smaller number is 
-#' # used here for demonstration 
-#' # efficiency.  Generally, iter = 999 will take less
-#' # than 1s for this example with a modern computer.
 #'
 #' fit <- lm.rrpp(log(headSize) ~ sex + locality/year, SS.type = "I", 
-#' data = PupfishHeads, print.progress = FALSE, iter = 199)
+#' data = PupfishHeads, print.progress = FALSE, iter = 999)
 #' summary(fit)
 #' anova(fit, effect.type = "F") # Maybe not most appropriate
 #' anova(fit, effect.type = "Rsq") # Change effect type, but still not 
@@ -254,7 +263,7 @@
 #' # Change to Type III SS
 #' 
 #' fit <- lm.rrpp(log(headSize) ~ sex + locality/year, SS.type = "III", 
-#' data = PupfishHeads, print.progress = FALSE, iter = 199)
+#' data = PupfishHeads, print.progress = FALSE, iter = 999)
 #' summary(fit)
 #' anova(fit, effect.type = "F", error = c("Residuals", "locality:year", 
 #' "Residuals"))
@@ -283,14 +292,9 @@
 #' # Note:
 #' 
 #' dim(Pupfish$coords) # highly multivariate!
-#'
-#' # Note: one should increase RRPP iterations but they are 
-#' # not used at all here for a fast example.  
-#' # Generally, iter = 999 will take less
-#' # than 1 second for this example with a modern computer.
-#' 
+
 #' fit <- lm.rrpp(coords ~ log(CS) + Sex*Pop, SS.type = "I", 
-#' data = Pupfish, print.progress = FALSE, iter = 0) 
+#' data = Pupfish, print.progress = FALSE, iter = 999) 
 #' summary(fit, formula = FALSE)
 #' anova(fit) 
 #' coef(fit, test = TRUE)
@@ -332,13 +336,8 @@
 #' length(D)
 #' Pupfish$D <- D
 #' 
-#' # Note: one should increase RRPP iterations but they are 
-#' # not used at all here for a fast example.  Generally, 
-#' # iter = 999 will take less than 1 second 
-#' # for this example with a modern computer.
-#' 
 #' fitD <- lm.rrpp(D ~ log(CS) + Sex*Pop, SS.type = "I", 
-#' data = Pupfish, print.progress = FALSE, iter = 0) 
+#' data = Pupfish, print.progress = FALSE, iter = 999) 
 #' 
 #' # These should be the same:
 #' summary(fitD, formula = FALSE)
@@ -378,10 +377,10 @@
 #' PlethMorph$Hindlimb))
 #' PlethMorph$Y <- Y
 #' fitOLSm <- lm.rrpp(Y ~ SVL, data = PlethMorph, 
-#' print.progress = FALSE, iter = 199)
+#' print.progress = FALSE, iter = 999)
 #' fitGLSm <- lm.rrpp(Y ~ SVL, data = PlethMorph, 
 #' Cov = PlethMorph$PhyCov,
-#' print.progress = FALSE, iter = 199)
+#' print.progress = FALSE, iter = 999)
 #' 
 #' anova(fitOLSm)
 #' anova(fitGLSm)
@@ -395,11 +394,14 @@
 #' # With respect to independent variable (using abscissa)
 #' plot(predict(fitOLSm, sizeDF), abscissa = sizeDF) # Correlated error
 #' plot(predict(fitGLSm, sizeDF), abscissa = sizeDF) # Independent error
+#' }
 
 lm.rrpp <- function(f1, iter = 999, turbo = FALSE, seed = NULL, int.first = FALSE,
-                     RRPP = TRUE, SS.type = c("I", "II", "III"),
+                     RRPP = TRUE, full.resid = FALSE, block = NULL,
+                     SS.type = c("I", "II", "III"),
                      data = NULL, Cov = NULL,
-                     print.progress = FALSE, Parallel = FALSE, ...) {
+                     print.progress = FALSE, Parallel = FALSE, 
+                     verbose = FALSE, ...) {
   
   Parallel.args <- Parallel.setup(Parallel)
   
@@ -409,6 +411,21 @@ lm.rrpp <- function(f1, iter = 999, turbo = FALSE, seed = NULL, int.first = FALS
   if(int.first) ko = TRUE else ko = FALSE
   SS.type <- match.arg(SS.type)
   
+  full.resid <- ifelse(RRPP, full.resid, FALSE)
+  if(full.resid && SS.type != "III"){
+    SS.type = "III"
+    warning(
+      paste(
+        "\nThis is not an error!  It is a friendly warning.\n",
+        "\nBecause a permutation of full model residuals was chosen,",
+        "\nSS.type is being forced to be III, as this is the only applicable",
+        "\nestimation method when using full model residuals as exchangeable units",
+        "\nunder the null hypotheses of model effects.  Additionally, all random",
+        "\nANOVA statistics will have the form, |random.stat - observed.stat|.\n",
+        "\nUse options(warn = -1) to turn off these warnings. \n\n", sep = " "),
+        noBreaks. = TRUE, call. = FALSE, immediate. = TRUE) 
+  }
+  
   dots <- list(...)
   if(length(dots) > 0) {
     w <- dots$weights
@@ -417,12 +434,17 @@ lm.rrpp <- function(f1, iter = 999, turbo = FALSE, seed = NULL, int.first = FALS
   
   if(!is.null(w) && !is.null(Cov)) {
     w <- NULL
-    cat("\nWarning: It is not possible to use both a Cov matrix and weights.")
-    cat("\nBoth are inputs to perform generalized least squares estimation of coefficients,")
-    cat("\nbut at present only one covariance matrix can be used.")
-    cat("\nAs a result, weights are set to NULL.")
-    cat("\nYou could consider adjusting your Cov matrix; e.g., Cov <- Cov * 1/weights,")
-    cat("\nmaking sure the Cov matrix and weights are ordered consistently.\n\n")
+    warning(
+    paste(
+      "\nThis is not an error!  It is a friendly warning.\n",
+      "\nIt is not possible to use both a Cov matrix and weights.",
+      "\nBoth are inputs to perform generalized least squares estimation of coefficients,",
+      "\nbut at present only one covariance matrix can be used.",
+      "\nAs a result, weights are set to NULL.",
+      "\nYou could consider adjusting your Cov matrix; e.g., Cov <- Cov * 1/weights,",
+      "\nmaking sure the Cov matrix and weights are ordered consistently.\n",
+      "\nUse options(warn = -1) to turn off these warnings. \n\n", sep = " "),
+    noBreaks. = TRUE, call. = FALSE, immediate. = TRUE) 
   }
   
   Terms <- D <- NULL
@@ -464,6 +486,7 @@ lm.rrpp <- function(f1, iter = 999, turbo = FALSE, seed = NULL, int.first = FALS
     Y <- add.names(Y, id)
   }
   
+  attr(Terms, ".Environment") <- NULL
   term.labels <- attr(Terms, "term.labels")
   k <- length(term.labels)
   
@@ -490,7 +513,10 @@ lm.rrpp <- function(f1, iter = 999, turbo = FALSE, seed = NULL, int.first = FALS
     Cov.name <- deparse(substitute(Cov))
     Cov.match <- match(Cov.name, names(data))
     if(all(is.na(Cov.match))) Cov <- Cov else Cov <- data[[Cov.match]]
-    if(!is.matrix(Cov)) stop("The covariance matrix must be a matrix.")
+    if(is.null(rownames(Cov))) rownames(Cov) <- 1:n
+    if(is.null(colnames(Cov))) colnames(Cov) <- 1:n
+    if(!inherits(Cov, "Matrix") && !inherits(Cov, "matrix")) 
+      stop("The covariance matrix must be a matrix.")
     if(!is.null(id) && !is.null(rownames(Cov))) {
       if(length(setdiff(id, rownames(Cov))) > 0)
         stop("Data names and covariance matrix names do not match.\n", call. = FALSE)
@@ -533,7 +559,7 @@ lm.rrpp <- function(f1, iter = 999, turbo = FALSE, seed = NULL, int.first = FALS
   
   names(Qs) <- names(Qs.sparse) <- c("reduced", "full")
   
-  ind <- perm.index(n, iter = iter, seed = seed)
+  ind <- perm.index(n, iter = iter, block = block, seed = seed)
   perms <- iter + 1
   
   checkers.args <- list(Y = Y, Qs = Qs, Qs.sparse = Qs.sparse, Xs = Xs,
@@ -558,13 +584,24 @@ lm.rrpp <- function(f1, iter = 999, turbo = FALSE, seed = NULL, int.first = FALS
   kk <- length(Ur)
   
   if(RRPP) {
-    FR <- obs.FR <-lapply(1:max(1, kk), function(j){
-      fitted <- as.matrix(fastFit(Ur[[j]], TY, n , p))
-      residuals <- as.matrix(TY - fitted)
-      out <- list(fitted = fitted, residuals = residuals)
-    })
+    if(full.resid) {
+      Uf <- cks$Uf
+      FR <- lapply(1:max(1, kk), function(j){
+        fitted <- as.matrix(fastFit(Uf[[j]], TY, n , p))
+        residuals <- as.matrix(TY - fitted)
+        out <- list(fitted = fitted, residuals = residuals)
+      })
+      Uf <- NULL
+    } else {
+      FR <-lapply(1:max(1, kk), function(j){
+        fitted <- as.matrix(fastFit(Ur[[j]], TY, n , p))
+        residuals <- as.matrix(TY - fitted)
+        out <- list(fitted = fitted, residuals = residuals)
+      })
+    }
+
   } else {
-    FR <- obs.FR <- lapply(1:max(1, kk), function(j){
+    FR <- lapply(1:max(1, kk), function(j){
       fitted <-  matrix(0, n, p)
       residuals <- as.matrix(TY)
       list(fitted = fitted, residuals = residuals)
@@ -591,13 +628,24 @@ lm.rrpp <- function(f1, iter = 999, turbo = FALSE, seed = NULL, int.first = FALS
   cks$Y <- TYp
   
   if(PCA){
+    
     if(RRPP) {
-      FR <- lapply(1:max(1, k), function(j){
-        fitted <- as.matrix(fastFit(Ur[[j]], TYp, n , p.prime))
-        residuals <- as.matrix(TYp - fitted)
-        list(fitted = fitted, residuals = residuals)
-      })
-    } else {
+      if(full.resid) {
+        Uf <- cks$Uf
+        FR <- lapply(1:max(1, k), function(j){
+          fitted <- as.matrix(fastFit(Uf[[j]], TYp, n , p.prime))
+          residuals <- as.matrix(TYp - fitted)
+          list(fitted = fitted, residuals = residuals)
+        })
+        Uf <- NULL
+      } else {
+        FR <- lapply(1:max(1, k), function(j){
+          fitted <- as.matrix(fastFit(Ur[[j]], TYp, n , p.prime))
+          residuals <- as.matrix(TYp - fitted)
+          list(fitted = fitted, residuals = residuals)
+        })
+        }
+      } else {
       FR <- lapply(1:max(1, k), function(j){
         fitted <- matrix(0, n, p.prime)
         residuals <- as.matrix(TYp)
@@ -612,7 +660,11 @@ lm.rrpp <- function(f1, iter = 999, turbo = FALSE, seed = NULL, int.first = FALS
   FR <- NULL
   SS <- do.call(SS.iter, SS.args)
   cks$SS.type <- SS.type
-  ANOVA <- anova.parts(cks, SS)
+
+  ANOVA <- anova_parts(cks, SS, full.resid)
+  if(!verbose){
+    ANOVA$MS <- ANOVA$Fs <- ANOVA$cohenf <- NULL
+  }
   SS.args <- NULL
   
   obs.fit <- lm.rrpp.fit(X, Y, Pcov = Pcov, w = w, offset = o, 
@@ -620,13 +672,14 @@ lm.rrpp <- function(f1, iter = 999, turbo = FALSE, seed = NULL, int.first = FALS
   
   QR <- obs.fit$qr
   U <- qr.Q(QR)
-  R <- if(inherits(QR, "qr")) qr.R(QR) else qrR(QR)
+  R <- suppressWarnings(qr.R(QR))
   Hb <- as.matrix(tcrossprod(fast.solve(R), U))
   if(is.null(rownames(Hb))) rownames(Hb) <- colnames(X)
   coefficients <- as.matrix(Hb %*% TY)
   if(is.null(rownames(coefficients)))  
     rownames(coefficients) <- rownames(Hb)
   R <- U <- QR <- NULL
+
   QR <- if(gls && !is.null(Pcov)) qr(Pcov %*% X) else
     if(gls && !is.null(w)) qr(X * sqrt(w)) else qr(X)
   
@@ -640,9 +693,17 @@ lm.rrpp <- function(f1, iter = 999, turbo = FALSE, seed = NULL, int.first = FALS
              QR = QR,
              Terms = Terms, term.labels = term.labels,
              data = exchange.args$model,
-             random.coef = random.coef,
-             random.coef.distances = random.coef.distances 
+             random.coef = if(verbose) random.coef else NULL,
+             random.coef.distances = if(verbose) 
+               random.coef.distances else NULL
   )
+  
+  attr(LM$Terms,".Environment") <- NULL
+  attr(LM$form,".Environment") <- NULL
+  if(verbose && !turbo) {
+    environment(LM$random.coef) <- 
+      environment(LM$random.coef.distances) <- NULL
+  }
   
   LM$weights <- w
   LM$offset <- o
@@ -664,15 +725,22 @@ lm.rrpp <- function(f1, iter = 999, turbo = FALSE, seed = NULL, int.first = FALS
   
   if(!is.null(Cov)) {
     LM$Cov <- Cov
-    LM$Pcov <- Pcov
+    LM$Pcov <- if(verbose) Pcov else NULL
+    rm(Cov, Pcov)
   }
+  
   
   PermInfo <- list(perms = perms,
                    perm.method = ifelse(RRPP==TRUE,"RRPP", "FRPP"), 
+                   full.resid = full.resid, block = block,
                    perm.schedule = ind, perm.seed = seed)
+  if(!verbose) PermInfo$perm.schedule <- NULL
+  rm(ind)
+  
   out <- list(call = match.call(), 
               LM = LM, ANOVA = ANOVA, PermInfo = PermInfo, turbo = turbo)
-  
+  environment(out$PermInfo$perm.seed) <- 
+    environment(out$PermInfo$perm.sschedule) <- NULL
   
   if(k == 0 && print.progress)
     cat("\nNo terms for ANOVA; only RSS calculated in each permutation\n")
@@ -683,30 +751,31 @@ lm.rrpp <- function(f1, iter = 999, turbo = FALSE, seed = NULL, int.first = FALS
     out$LM$dist.coefficients <- D.coef
   }
   
-  
-  Models <-lapply(1:2, function(j){
-    res <- lapply(1:max(1, kk), function(jj){
-      X <- Xs[[j]][[jj]]
-      qr <- cks$QR[[j]][[jj]]
-      fitted <- obs.FR[[max(1, jj)]]$fitted
-      residuals <- obs.FR[[max(1, jj)]]$residuals
-      list(X = X, qr = qr, fitted.values = fitted, 
-           residuals = residuals)
+  if(verbose) {
+    
+    Models <-lapply(1:2, function(j){
+      res <- lapply(1:max(1, kk), function(jj){
+        X <- Xs[[j]][[jj]]
+        qr <- cks$QR[[j]][[jj]]
+        list(X = X, qr = qr)
+      })
+      names(res) <- cks$realized.trms
+      res
     })
-    names(res) <- cks$realized.trms
-    res
-  })
-  names(Models) <- c("reduced", "full")
-  
-  Model.Terms <- getTerms(Terms, SS.type)
-  
-  for(i in 1:2){
-    for(j in 1:max(1, kk)){
-      Models[[i]][[j]]$terms <- Model.Terms[[i]][[j]]
+    names(Models) <- c("reduced", "full")
+    
+    Model.Terms <- .getTerms(fit = NULL, Terms = Terms, SS.type = SS.type)
+    
+    for(i in 1:2){
+      for(j in 1:max(1, kk)){
+        Models[[i]][[j]]$terms <- Model.Terms[[i]][[j]]
+      }
     }
-  }
-  
+    
+  } else Models <- NULL
+
   out$Models <- Models
+  out$verbose <- verbose
   
   class(out) = "lm.rrpp"
   

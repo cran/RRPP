@@ -11,11 +11,14 @@ lm.rrpp(
   seed = NULL,
   int.first = FALSE,
   RRPP = TRUE,
+  full.resid = FALSE,
+  block = NULL,
   SS.type = c("I", "II", "III"),
   data = NULL,
   Cov = NULL,
   print.progress = FALSE,
   Parallel = FALSE,
+  verbose = FALSE,
   ...
 )
 }
@@ -45,6 +48,14 @@ main effects should precede subsequent main effects}
 \item{RRPP}{A logical value indicating whether residual randomization 
 should be used for significance testing}
 
+\item{full.resid}{A logical value for whether to use the full model residuals, only 
+(sensu ter Braak, 1992). This only works if RRPP = TRUE and SS.type = III.  
+Rather than permuting reduced model residuals,
+this option permutes only the full model residuals in every random permutation of RRPP.}
+
+\item{block}{An optional factor for blocks within which to restrict resampling
+permutations.}
+
 \item{SS.type}{A choice between type I (sequential), type II 
 (hierarchical), or type III (marginal)
 sums of squares and cross-products computations.}
@@ -69,9 +80,14 @@ except one.  If FALSE, only one core is used. A numeric value directs the number
 use, but one core will always be spared.  If a predefined socket cluster (Windows) is provided,
 the cluster information will be passed to \code{parallel}.}
 
+\item{verbose}{A logical value to indicate if all possible output from an analysis 
+should be retained.  Generally this should be FALSE, unless one wishes to extract, e.g.,
+all possible terms, model matrices, QR decomposition, or random permutation schemes.}
+
 \item{...}{Arguments typically used in \code{\link{lm}}, such as 
 weights or offset, passed on to
-\code{rrpp.fit} for estimation of coefficients.  If both weights and 
+\code{LM.fit} (an internal RRPP function) for estimation of coefficients.  
+If both weights and 
 a covariance matrix are included,
 weights are ignored (since inverses of weights are the diagonal elements 
 of weight matrix, used in lieu
@@ -240,6 +256,7 @@ vectors (Adams and Collyer 2016).
 }
 }
 \examples{
+\dontrun{
 
 # Examples use geometric morphometric data
 # See the package, geomorph, for details about obtaining such data
@@ -249,13 +266,8 @@ names(PupfishHeads)
 
 # Head Size Analysis (Univariate)-------------------------------------------------------
 
-# Note: one should increase RRPP iterations but a smaller number is 
-# used here for demonstration 
-# efficiency.  Generally, iter = 999 will take less
-# than 1s for this example with a modern computer.
-
 fit <- lm.rrpp(log(headSize) ~ sex + locality/year, SS.type = "I", 
-data = PupfishHeads, print.progress = FALSE, iter = 199)
+data = PupfishHeads, print.progress = FALSE, iter = 999)
 summary(fit)
 anova(fit, effect.type = "F") # Maybe not most appropriate
 anova(fit, effect.type = "Rsq") # Change effect type, but still not 
@@ -270,7 +282,7 @@ anova(fit, effect.type = "F", error = c("Residuals", "locality:year",
 # Change to Type III SS
 
 fit <- lm.rrpp(log(headSize) ~ sex + locality/year, SS.type = "III", 
-data = PupfishHeads, print.progress = FALSE, iter = 199)
+data = PupfishHeads, print.progress = FALSE, iter = 999)
 summary(fit)
 anova(fit, effect.type = "F", error = c("Residuals", "locality:year", 
 "Residuals"))
@@ -299,14 +311,8 @@ names(Pupfish)
 # Note:
 
 dim(Pupfish$coords) # highly multivariate!
-
-# Note: one should increase RRPP iterations but they are 
-# not used at all here for a fast example.  
-# Generally, iter = 999 will take less
-# than 1 second for this example with a modern computer.
-
 fit <- lm.rrpp(coords ~ log(CS) + Sex*Pop, SS.type = "I", 
-data = Pupfish, print.progress = FALSE, iter = 0) 
+data = Pupfish, print.progress = FALSE, iter = 999) 
 summary(fit, formula = FALSE)
 anova(fit) 
 coef(fit, test = TRUE)
@@ -348,13 +354,8 @@ D <- dist(Pupfish$coords) # inter-observation distances
 length(D)
 Pupfish$D <- D
 
-# Note: one should increase RRPP iterations but they are 
-# not used at all here for a fast example.  Generally, 
-# iter = 999 will take less than 1 second 
-# for this example with a modern computer.
-
 fitD <- lm.rrpp(D ~ log(CS) + Sex*Pop, SS.type = "I", 
-data = Pupfish, print.progress = FALSE, iter = 0) 
+data = Pupfish, print.progress = FALSE, iter = 999) 
 
 # These should be the same:
 summary(fitD, formula = FALSE)
@@ -394,10 +395,10 @@ PlethMorph$Forelimb,
 PlethMorph$Hindlimb))
 PlethMorph$Y <- Y
 fitOLSm <- lm.rrpp(Y ~ SVL, data = PlethMorph, 
-print.progress = FALSE, iter = 199)
+print.progress = FALSE, iter = 999)
 fitGLSm <- lm.rrpp(Y ~ SVL, data = PlethMorph, 
 Cov = PlethMorph$PhyCov,
-print.progress = FALSE, iter = 199)
+print.progress = FALSE, iter = 999)
 
 anova(fitOLSm)
 anova(fitGLSm)
@@ -411,6 +412,7 @@ plot(predict(fitGLSm, sizeDF)) # Independent error
 # With respect to independent variable (using abscissa)
 plot(predict(fitOLSm, sizeDF), abscissa = sizeDF) # Correlated error
 plot(predict(fitGLSm, sizeDF), abscissa = sizeDF) # Independent error
+}
 }
 \references{
 Anderson MJ. 2001. A new method for non-parametric 
@@ -432,10 +434,14 @@ datasets. Evolution. 70:2623-2631.
 Adams, D.C and M.L. Collyer. 2018. Multivariate phylogenetic 
 anova: group-clade aggregation, biological 
 challenges, and a refined permutation procedure. Evolution. 72:1204-1215.
+
+ter Braak, C.J.F. 1992. Permutation versus bootstrap significance tests in 
+multiple regression and ANOVA. pp .79–86 In Bootstrapping and Related Techniques. eds K-H. Jockel, 
+G. Rothe & W. Sendler.Springer-Verlag, Berlin.
+\code{\link[stats]{lm}} for more on linear model fits.
 }
 \seealso{
-\code{procD.lm} and \code{procD.pgls} within \code{geomorph}; 
-\code{\link[stats]{lm}} for more on linear model fits.
+\code{procD.lm} and \code{procD.pgls} within \code{geomorph};
 }
 \author{
 Michael Collyer

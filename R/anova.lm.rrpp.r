@@ -61,6 +61,17 @@ anova.lm.rrpp <- function(object, ...,
                           effect.type = c("F", "cohenf", "SS", "MS", "Rsq"),
                           error = NULL, print.progress = TRUE) {
   effect.type <- match.arg(effect.type)
+  if(object$PermInfo$full.resid && effect.type != "F") {
+    effect.type = "F"
+    warning(
+      paste(
+        "\nThis is not an error!  It is a friendly warning.\n",
+        "\nBecause permutation of full model residuals was chosen,",
+        "\nthe effect size type must be focrced to be F to have appropriate effect sizes.\n",
+        "\nUse options(warn = -1) to turn off these warnings. \n\n", sep = " "),
+      noBreaks. = TRUE, call. = FALSE, immediate. = TRUE) 
+  }
+  
   dots <- list(...)
   lm.check <- sapply(dots, inherits, "lm.rrpp")
   if(any(lm.check)) {
@@ -70,6 +81,7 @@ anova.lm.rrpp <- function(object, ...,
                            print.progress = print.progress)
   } else out <- aov.single.model(object, ...,
                           effect.type = effect.type,
+                          full.resid = object$PermInfo$full.resid,
                           error = error)
   out
 }

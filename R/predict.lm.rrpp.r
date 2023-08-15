@@ -34,11 +34,14 @@
 #' \code{\link{lm.rrpp}} fit should be represented in the newdata data frame, 
 #' with appropriate factor levels.
 #' @param confidence The desired confidence interval level for prediction.
+#' @param block An optional factor for blocks within which to restrict resampling
+#' permutations.
 #' @param ... Other arguments (currently none)
 #' @export
 #' @author Michael Collyer
 #' @keywords utilities
 #' @examples 
+#' \dontrun{
 #' # See examples for lm.rrpp to see how predict.lm.rrpp works in conjunction
 #' # with other functions
 #' 
@@ -46,7 +49,7 @@
 #' 
 #' # CS is centroid (fish) size
 #' fit <- lm.rrpp(coords ~ log(CS)  + Sex*Pop, 
-#' SS.type = "I", data = Pupfish, iter = 499) 
+#' SS.type = "I", data = Pupfish, iter = 999) 
 #'
 #' # Predictions (holding alternative effects constant)
 #' 
@@ -67,8 +70,10 @@
 #' plot(shapePreds, PC = TRUE, ellipse = TRUE)
 #' plot(shapePreds99, PC = TRUE)
 #' plot(shapePreds99, PC = TRUE, ellipse = TRUE)
+#' }
 #' 
-predict.lm.rrpp <- function(object, newdata = NULL, confidence = 0.95, ...) {
+predict.lm.rrpp <- function(object, newdata = NULL, block = NULL,
+                            confidence = 0.95, ...) {
   if(!inherits(object, "lm.rrpp")) stop("Object is not class lm.rrpp")
   Terms <- object$LM$Terms
   trms <- object$LM$term.labels
@@ -115,13 +120,24 @@ predict.lm.rrpp <- function(object, newdata = NULL, confidence = 0.95, ...) {
       stop("\nVariables in newdata do not match variables used in lm.rrpp fit",
            call. = FALSE)
     if(any(is.na(tm))) {
-      cat("\nWarning: Not all variables in model accounted for in newdata.")
-      cat("\nMissing variables will be averaged from observed data for prediction.\n\n")
+      
+      warning(
+        paste(
+          "\nThis is not an error!  It is a friendly warning.\n",
+          "\nNot all variables in model accounted for in newdata.",
+          "\nMissing variables will be averaged from observed data for prediction.\n",
+          "\nUse options(warn = -1) to turn off these warnings. \n\n", sep = " "),
+        noBreaks. = TRUE, call. = FALSE, immediate. = TRUE) 
+      
     }
     
     nform <- formula(TT[which(!is.na(tm))])
     mX <- model.matrix(nform, data = newdata)
-    nX[, match(colnames(mX), colnames(nX))] <- mX
+    vars <- colnames(nX)[colnames(nX) %in% colnames(mX)]
+    if(length(vars) == 0)
+      stop("\nVariables in newdata do not match variables used in lm.rrpp fit",
+           call. = FALSE)
+    nX[, vars] <- mX[, vars]
   }
   
   o <- object$LM$offset
@@ -130,11 +146,11 @@ predict.lm.rrpp <- function(object, newdata = NULL, confidence = 0.95, ...) {
   n <- NROW(nX)
   p <- NCOL(object$LM$Y)
   
-  PI <- object$PermInfo$perm.schedule
-  seed <- attr(PI, "seed")
-  perms <- length(PI)
-  indb <- boot.index(length(PI[[1]]), perms -1, seed)
-  k <- length(object$Models$full)
+  PI <- getPermInfo(object, attribute = "all")
+  seed <- attr(PI$perm.schedule, "seed")
+  perms <- PI$perms
+  indb <- boot.index(length(PI$perm.schedule[[1]]), 
+                     perms -1, block, seed)
   betas <- beta.boot.iter(object, indb)
   
   predM <- function(b) as.matrix(nX[, rownames(b)] %*% b)

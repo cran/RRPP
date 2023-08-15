@@ -8,6 +8,7 @@ fit <- lm.rrpp(coords ~ Sex*Pop, SS.type = "I",
                data = Pupfish, print.progress = FALSE) 
 attributes(fit)
 attributes(fit$ANOVA)
+attributes(getANOVAStats(fit, stat = "all"))
 
 ## -----------------------------------------------------------------------------
 anova(fit)

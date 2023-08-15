@@ -4,7 +4,7 @@
 \alias{predict.lm.rrpp}
 \title{predict for lm.rrpp model fits}
 \usage{
-\method{predict}{lm.rrpp}(object, newdata = NULL, confidence = 0.95, ...)
+\method{predict}{lm.rrpp}(object, newdata = NULL, block = NULL, confidence = 0.95, ...)
 }
 \arguments{
 \item{object}{Object from \code{\link{lm.rrpp}}.}
@@ -19,6 +19,9 @@ will be made in prediction; i.e., least squares means for factor levels
 can be found.  All factors used in the
 \code{\link{lm.rrpp}} fit should be represented in the newdata data frame, 
 with appropriate factor levels.}
+
+\item{block}{An optional factor for blocks within which to restrict resampling
+permutations.}
 
 \item{confidence}{The desired confidence interval level for prediction.}
 
@@ -47,6 +50,7 @@ different number of observations than the original
 model fit.
 }
 \examples{
+\dontrun{
 # See examples for lm.rrpp to see how predict.lm.rrpp works in conjunction
 # with other functions
 
@@ -54,7 +58,7 @@ data(Pupfish)
 
 # CS is centroid (fish) size
 fit <- lm.rrpp(coords ~ log(CS)  + Sex*Pop, 
-SS.type = "I", data = Pupfish, iter = 499) 
+SS.type = "I", data = Pupfish, iter = 999) 
 
 # Predictions (holding alternative effects constant)
 
@@ -75,6 +79,7 @@ plot(shapePreds, PC = TRUE)
 plot(shapePreds, PC = TRUE, ellipse = TRUE)
 plot(shapePreds99, PC = TRUE)
 plot(shapePreds99, PC = TRUE, ellipse = TRUE)
+}
 
 }
 \author{

@@ -29,14 +29,16 @@
 #' effects can also be evaluated.
 #' 
 #' @import parallel
-#' @import stats
-#' @import graphics
-#' @import utils
 #' @import ggplot2 
 #' @import Matrix
 #' @importFrom ape multi2di.phylo
 #' @importFrom ape root.phylo
 #' @importFrom ape collapse.singles
+#' @importFrom stats na.omit anova as.dist as.formula cmdscale coef delete.response dist formula lm
+#' lm.fit lm.wfit loess logLik model.frame.default model.matrix optimise prcomp qnorm quantile 
+#' resid sd spline var
+#' @importFrom graphics abline arrows axis legend lines par plot.default points text title
+#' @importFrom utils combn object.size setTxtProgressBar txtProgressBar
 #' @export print.lm.rrpp
 #' @export summary.lm.rrpp
 #' @export print.summary.lm.rrpp
@@ -190,11 +192,16 @@ rrpp.data.frame<- function(...) {
     class(dots) <- "rrpp.data.frame"
   } else if(length(dots) == 1 && inherits(dots[[1]], "geomorph.data.frame")) {
     dots <- dots[[1]]
-    cat("\nWarning: Some geomorph.data.frame objects might not be 
-        compatible with RRPP functions.")
-    cat("\nIf any part of the geomorph.data.frame conatins a 3D array,")
-    cat("\nconsider converting it to a matrix before attempting to 
-        make an rrpp.data.frame.")
+    
+    warning(
+      paste(
+        "\nThis is not an error!  It is a friendly warning.\n",
+        "\nSome geomorph.data.frame objects might not be compatible with RRPP functions.",
+        "\nIf any part of the geomorph.data.frame conatins a 3D array,",
+        "consider converting it to a matrix before attempting to make an rrpp.data.frame\n",
+        "Use options(warn = -1) to turn off these warnings.\n\n", sep = " "),
+      noBreaks. = TRUE, call. = FALSE, immediate. = TRUE) 
+
     class(dots) <- "rrpp.data.frame"
   } else if(length(dots) == 1 && inherits(dots[[1]], "rrpp.data.frame")) {
     dots <- dots[[1]]
@@ -343,7 +350,8 @@ makeDF <- function(form, data, n, nms) {
     
     var.check <- sapply(seq_len(length(dat)), function(j) {
       x <- dat[[j]]
-      length(x) == n
+      nn <- if(is.matrix(x)) nrow(x) else length(x)
+      nn == n
     })
     
     if(any(!var.check)) 
@@ -418,8 +426,6 @@ lm.args.from.formula <- function(cl){
   }
   form <- update(form, Y ~.,)
   lm.args$formula <- form
-  
-  Y <- add.names(Y, nmsY)
   n <- NROW(Y)
   
   if(!is.null(lm.args$data)) {
@@ -427,14 +433,14 @@ lm.args.from.formula <- function(cl){
       attr(lm.args$data, "row.names") else 
         get.names.from.list(lm.args$data)
 
-    lm.args$data <- makeDF(form, lm.args$data, n, nmsDF)
+    lm.args$data <- makeDF(form, lm.args$data, n, nms = NULL)
+    
   }
   
   if(is.null(lm.args$data)) {
     lm.args$data <- data.frame(Int = rep(1, n))
     lm.args$data$Y <- as.matrix(Y)
     lm.args$data <- lm.args$data[-1]
-    rownames(lm.args$data) <-nmsY
   }
   
   lm.args$data$Y <- Y
@@ -449,7 +455,7 @@ lm.args.from.formula <- function(cl){
          call. = FALSE)
   
   Y <- as.matrix(f$y)
-  Y <- add.names(Y, rownames(f$model))
+  Y <- add.names(Y, nmsY)
   out <- list(Terms = f$terms, model = f$model, Y = Y)
   if(!is.null(Dy)) {
     d <- as.matrix(Dy)
@@ -460,10 +466,17 @@ lm.args.from.formula <- function(cl){
   out
 }
 
-getTerms <- function(Terms, SS.type = "I") {
+.getTerms <- function(fit = NULL, Terms = NULL, SS.type = NULL) {
+  if(is.null(Terms)) Terms <-  fit$LM$Terms
+  if(is.null(SS.type)) SS.type <- fit$ANOVA$SS.type
   trms <- attr(Terms, "term.labels")
   k <- length(trms)
   mod.k <- if(k > 0) c(0, seq(1, k, 1)) else 0
+  
+  if(!is.null(fit) && SS.type == "Within-subject type II") {
+    SS.type <- "II"
+    WS <- TRUE
+  } else WS <- FALSE
   
   if(k > 0) {
     if(SS.type == "III"){
@@ -491,6 +504,13 @@ getTerms <- function(Terms, SS.type = "I") {
     }
     
     names(modf) <- names(modr) <- trms
+    
+    if(WS) {
+      trms.change <- which(trms == fit$subjects.var)
+      modf[[trms.change]] <- Terms
+      modr[[trms.change]] <- Terms[!trms %in% fit$subjects.var]
+    }
+    
   } else {
     modr <- modf <- list("Intercept" = Terms)
   }
@@ -579,11 +599,16 @@ getXs <- function(Terms, Y, SS.type, tol = 1e-7,
   
   if(fix) {
     Terms <- Terms[uk]
-    cat("\nWarning: Because variables in the linear model are redundant,")
-    cat("\nthe linear model design has been truncated (via QR decomposition).")
-    cat("\nOriginal X columns:", X.n.k.obs)
-    cat("\nFinal X columns (rank):", X.n.k)
-    cat("\nCheck coefficients or degrees of freedom in ANOVA to see changes.\n\n")
+    warning(
+      paste(
+        "\nThis is not an error!  It is a friendly warning.\n",
+        "\nBecause variables in the linear model are redundant,",
+        "\nthe linear model design has been truncated (via QR decomposition).",
+        "\nOriginal X columns:", X.n.k.obs,
+        "\nFinal X columns (rank):", X.n.k,
+        "\nCheck coefficients or degrees of freedom in ANOVA to see changes.\n",
+        "\nUse options(warn = -1) to turn off these warnings. \n\n", sep = " "),
+      noBreaks. = TRUE, call. = FALSE, immediate. = TRUE) 
   } 
   
   term.labels <- attr(Terms, "term.labels")
@@ -760,7 +785,7 @@ droplevels.rrpp.data.frame <- function (x, except = NULL, ...) {
 getHb <- function(Q) {
   S4 <- !(inherits(Q, "qr"))
   k <- getRank(Q)
-  R <- if(S4) qrR(Q) else qr.R(Q)
+  R <- suppressWarnings(qr.R(Q))
   U <- qr.Q(Q)
   Rs <- try(fast.solve(R), silent = TRUE)
   if(inherits(Rs, "try-error")){
@@ -1035,7 +1060,7 @@ SS.iter.main <- function(checkrs, ind, print.progress = TRUE,
 }
 
 
-# anova.parts
+# anova_parts
 # construct an ANOVA tablefrom random SS output
 # used in lm.rrpp
 
@@ -1050,7 +1075,7 @@ getRank <- function(Q) {
   return(r)
 }
 
-anova.parts <- function(checkrs, SS){
+anova_parts <- function(checkrs, SS, full.resid = FALSE){
   SS.type <- checkrs$SS.type
   perms <- NCOL(SS)
   trms <- checkrs$terms
@@ -1084,7 +1109,18 @@ anova.parts <- function(checkrs, SS){
       if(k == 1) unexp <- 1 - etas else unexp <- 1 - apply(etas, 2, cumsum)
       cohenf <- etas/unexp
     }
+    
     rownames(Fs) <- rownames(cohenf) <- rownames(SS)
+    
+    if(full.resid) {
+      SS <- abs(SS - cbind(0, matrix(SS[,1], nrow(SS), ncol(SS) - 1)))
+      MS <- abs(MS - cbind(0, matrix(MS[,1], nrow(MS), ncol(MS) - 1)))
+      Rsq <- abs(Rsq - cbind(0, matrix(Rsq[,1], nrow(Rsq), ncol(Rsq) - 1)))
+      Fs <- MS/RMS
+      rownames(Fs) <- rownames(SS)
+      cohenf <- NULL
+    }
+    
     
   } else {
     RSS <- NULL
@@ -1103,7 +1139,7 @@ anova.parts <- function(checkrs, SS){
   
   out <- list(SS.type = SS.type, SS = SS, MS = MS, RSS = RSS,
               TSS = TSS, RSS.model = RSS.model, Rsq = Rsq,
-              Fs = Fs, cohenf = cohenf,
+              Fs = Fs, cohenf = cohenf, full.resid = full.resid,
               n = n, p = p, df=df
   )
   out
@@ -1144,6 +1180,8 @@ beta.boot.iter <- function(fit, ind) {
   perms <- length(ind)
   
   Pcov <- fit$LM$Pcov
+  if(is.null(Pcov) && !is.null(fit$LM$Cov))
+    Pcov <- Cov.proj(fit$LM$Cov)
   
   rrpp.args <- list(fitted = as.matrix(fitted), 
                     residuals = as.matrix(res),
@@ -1358,14 +1396,27 @@ aov.single.model <- function(object, ...,
                              effect.type = c("F", "cohenf", "SS", "MS", "Rsq"),
                              error = NULL) {
   x <- object$ANOVA
+  if(is.null(x$Fs)) {
+    AN <- getANOVAStats(object, stat = "all")
+    x[c("SS", "MS", "Rsq", "Fs", "cohenf")] <-
+       AN[ c("SS", "MS", "Rsq", "Fs", "cohenf")]
+    AN <- NULL
+  }
+  
+  if(is.null(x$Fs)) x$Fs <- x$F
   df <- x$df
   k <- length(df)-2
   kk <- length(object$LM$term.labels)
   if(k > 0 && k != kk) {
-    cat("Warning ANOVA is missing some terms, likely because\n") 
-    cat("some independent variables were redundant.\n")
-    cat("If the residual SS is 0, results should not be trusted\n")
-  }
+    warning(
+      paste(
+        "\nThis is not an error!  It is a friendly warning.\n",
+        "\nANOVA is missing some terms, likely because",
+        "\nsome independent variables were redundant.",
+        "\nIf the residual SS is 0, results should not be trusted\n", 
+        "\nUse options(warn = -1) to turn off these warnings. \n\n", sep = " "),
+      noBreaks. = TRUE, call. = FALSE, immediate. = TRUE) 
+  } 
     
   SS <- x$SS
   MS <- x$MS 
@@ -1373,6 +1424,8 @@ aov.single.model <- function(object, ...,
   TSS <- x$TSS
   perms <- object$PermInfo$perms
   pm <- object$PermInfo$perm.method
+  if(pm == "RRPP" && object$PermInfo$full.resid)
+    pm <- "FMRP"
   trms <- object$LM$term.labels
   
   if(!is.null(error)) {
@@ -1405,14 +1458,27 @@ aov.single.model <- function(object, ...,
       est <- "GLS"
       
       if(effect.type == "SS") {
-        cat("\nWarning: calculating effect size on SS is illogical with GLS.
-            Effect type has been changed to F distributions.\n\n")
+        
+        warning(
+          paste(
+            "\nThis is not an error!  It is a friendly warning.\n",
+            "\nCalculating effect size on SS is illogical with GLS.",
+            "\nEffect type has been changed to F distributions.\n",
+            "\nUse options(warn = -1) to turn off these warnings. \n\n", sep = " "),
+          noBreaks. = TRUE, call. = FALSE, immediate. = TRUE) 
+        
         effect.type = "F"
       }
       
       if(effect.type == "MS") {
-        cat("\nWarning: calculating effect size on MS is illogical with GLS.
-            Effect type has been changed to F distributions.\n\n")
+        warning(
+          paste(
+            "\nThis is not an error!  It is a friendly warning.\n",
+            "\nCalculating effect size on MS is illogical with GLS.",
+            "\nEffect type has been changed to F distributions.\n",
+            "\nUse options(warn = -1) to turn off these warnings. \n\n", sep = " "),
+          noBreaks. = TRUE, call. = FALSE, immediate. = TRUE) 
+        
         effect.type = "F"
       }
     } else est <- "OLS"
@@ -1441,7 +1507,7 @@ aov.single.model <- function(object, ...,
     Residuals <- c(df[k+1], RSS[[1]], RSS[[1]]/df[k+1], 
                    RSS[[1]]/TSS[[1]], rep(NA, 3))
     Total <- c(df[k+2], TSS[[1]], rep(NA, 5))
-    tab <- data.frame(Df=df[1:k], SS=SS, MS = MS, Rsq = Rsq, 
+    tab <- data.frame(Df = df[1:k], SS=SS, MS = MS, Rsq = Rsq, 
                       F = Fs, Z = Z, P.val = P.val)
     tab <- rbind(tab, Residuals = Residuals, Total = Total)
     colnames(tab)[NCOL(tab)] <- paste("Pr(>", effect.type, ")", sep="")
@@ -1480,7 +1546,8 @@ aov.multi.model <- function(object, lm.list,
   
   if(inherits(object, "lm.rrpp")) refModel <- object else 
     stop("The reference model is not a class lm.rrpp object")
-  ind <- refModel$PermInfo$perm.schedule
+  PermInfo <- getPermInfo(refModel, attribute = "all")
+  ind <- PermInfo$perm.schedule
   perms <- length(ind)
   
   if(refModel$LM$gls) {
@@ -1645,9 +1712,12 @@ out
 # gets the slopes for groups from a lm.rrpp fit
 # used in pairwise
 getSlopes <- function(fit, x, g){
-  k <- length(fit$Models$full)
+  
+  beta <- fit$LM$random.coef
+  k <- length(beta)
+  beta <- beta[[k]]
+  n <- fit$LM$n
   p <- fit$LM$p
-  beta <- fit$LM$random.coef[[k]]
   X <- fit$LM$X
   X <- X[, colnames(X)  %in% rownames(beta[[1]])]
   getFitted <- function(b) X %*% b
@@ -1676,12 +1746,13 @@ getSlopes <- function(fit, x, g){
 
 # getLSmeans
 # gets the LS means for groups from a lm.rrpp fit, 
-# after constaining covariates to mean values
+# after constraining covariates to mean values
 # used in pairwise
 getLSmeans <- function(fit, g){
-  k <- length(fit$Models$full)
+  beta <- fit$LM$random.coef
+  k <- length(beta)
+  beta <- beta[[k]]
   n <- fit$LM$n
-  beta <- fit$LM$random.coef[[k]]
   dat <- fit$LM$data
   covCheck <- sapply(dat, class)
   for(i in 1:length(covCheck)) if(covCheck[i] == "numeric") 
@@ -1730,28 +1801,28 @@ vec.cor.matrix <- function(M) {
 # P-values across a list
 # used in pairwise
 Pval.list <- function(M){
-  pvals <- M[[1]]
-  n <- length(M)
-  for(i in 1:length(pvals)) {
-    y <- sapply(1:n, function(j) M[[j]][i])
-    pvals[i] <- pval(y)
-  }
-  diag(pvals) <- 1
-  pvals
+  
+  y <- sapply(M, function(x) as.vector(as.dist(x)))
+  if(is.vector(y)) y <- matrix(y, 1, length(y))
+  P <- apply(y, 1, pval)
+  D <- as.dist(M[[1]])
+  D[1:length(D)] <- P
+  P <- as.matrix(D)
+  diag(P) <- 1
+  P
 }
 
 # effect.list
 # effect size across a list
 # used in pairwise
 effect.list <- function(M){
-  Z <- M[[1]]
-  n <- length(M)
-  for(i in 1:length(Z)) {
-    y <- sapply(1:n, function(j) M[[j]][i])
-    Z[i] <- effect.size(y)
-  }
-  diag(Z) <- 0
-  Z
+  
+  y <- sapply(M, function(x) as.vector(as.dist(x)))
+  if(is.vector(y)) y <- matrix(y, 1, length(y))
+  Z <- apply(y, 1, effect.size)
+  D <- as.dist(M[[1]])
+  D[1:length(D)] <- Z
+  as.matrix(D)
 }
 
 # percentile.list
@@ -1906,6 +1977,8 @@ logL <- function(fit, tol = NULL, pc.no = NULL){
   R <- if(gls) {
     if(!is.null(Pcov)) Pcov %*% R else R * sqrt(w)
   } else R
+  
+  R <- as.matrix(R)
   
   if(!is.null(w)) {
     excl <- w <= 0

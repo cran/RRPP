@@ -7,7 +7,8 @@ data("PupfishHeads")
 PupfishHeads$logHeadSize <- log(PupfishHeads$headSize)
 fit <- lm.rrpp(logHeadSize ~ sex + locality/year, 
                SS.type = "I", data = PupfishHeads, 
-               print.progress = FALSE)
+               print.progress = FALSE,
+               turbo = FALSE, verbose = TRUE)
 summary(fit)
 anova(fit, effect.type = "F") 
 
@@ -56,7 +57,8 @@ anova(fit3)
 data(Pupfish)
 Pupfish$logSize <- log(Pupfish$CS) 
 fit <- lm.rrpp(coords ~ logSize + Sex*Pop, SS.type = "I", 
-               data = Pupfish, print.progress = FALSE) 
+               data = Pupfish, print.progress = FALSE,
+               turbo = FALSE, verbose = TRUE) 
 summary(fit, formula = FALSE)
 anova(fit) 
 coef(fit, test = TRUE) 
@@ -126,11 +128,13 @@ anova(fit)
 data(PlethMorph)
 fitOLS <- lm.rrpp(TailLength ~ SVL, 
                   data = PlethMorph,
-                  print.progress = FALSE)
+                  print.progress = FALSE,
+                  turbo = FALSE, verbose = TRUE)
 fitGLS <- lm.rrpp(TailLength ~ SVL, 
                   data = PlethMorph, 
                   Cov = PlethMorph$PhyCov,
-                  print.progress = FALSE)
+                  print.progress = FALSE,
+                  turbo = FALSE, verbose = TRUE)
 
 anova(fitOLS)
 anova(fitGLS)
@@ -150,10 +154,12 @@ PlethMorph$Hindlimb))
 PlethMorph$Y <- Y
 
 fitOLSm <- lm.rrpp(Y ~ SVL, data = PlethMorph,
-                   print.progress = FALSE)
+                   print.progress = FALSE,
+                  turbo = FALSE, verbose = TRUE)
 fitGLSm <- lm.rrpp(Y ~ SVL, data = PlethMorph, 
                    Cov = PlethMorph$PhyCov,
-                   print.progress = FALSE)
+                   print.progress = FALSE,
+                  turbo = FALSE, verbose = TRUE)
 
 anova(fitOLSm)
 anova(fitGLSm)
