@@ -12,7 +12,7 @@
 
 <meta name="author" content="Michael L. Collyer" />
 
-<meta name="date" content="2023-08-15" />
+<meta name="date" content="2024-02-06" />
 
 <title>ANOVA versus MANOVA in RRPP</title>
 
@@ -340,7 +340,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 <h1 class="title toc-ignore">ANOVA versus MANOVA in RRPP</h1>
 <h4 class="author">Michael L. Collyer</h4>
-<h4 class="date">2023-08-15</h4>
+<h4 class="date">2024-02-06</h4>
 
 
 
@@ -431,7 +431,7 @@ Others can be obtained from those statsistics.</p>
 <span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>               <span class="at">data =</span> Pupfish, <span class="at">print.progress =</span> <span class="cn">FALSE</span>) </span>
 <span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="fu">attributes</span>(fit)</span></code></pre></div>
 <pre><code>## $names
-## [1] &quot;call&quot;     &quot;LM&quot;       &quot;ANOVA&quot;    &quot;PermInfo&quot; &quot;turbo&quot;    &quot;verbose&quot; 
+## [1] &quot;call&quot;     &quot;LM&quot;       &quot;ANOVA&quot;    &quot;PermInfo&quot; &quot;turbo&quot;    &quot;verbose&quot;  &quot;subTest&quot; 
 ## 
 ## $class
 ## [1] &quot;lm.rrpp&quot;</code></pre>
@@ -453,12 +453,12 @@ an ANOVA table, via the anova.lm.rrpp S3 generic; i.e.,</p>
 ## Sums of Squares and Cross-products: Type I 
 ## Effect sizes (Z) based on F distributions
 ## 
-##           Df       SS        MS     Rsq      F      Z Pr(&gt;F)   
-## Sex        1 0.015780 0.0157802 0.28012 28.209 4.7773  0.001 **
-## Pop        1 0.009129 0.0091294 0.16206 16.320 4.7097  0.001 **
-## Sex:Pop    1 0.003453 0.0034532 0.06130  6.173 3.7015  0.001 **
-## Residuals 50 0.027970 0.0005594 0.49651                        
-## Total     53 0.056333                                          
+##           Df       SS        MS     Rsq      F      Z Pr(&gt;F)    
+## Sex        1 0.015780 0.0157802 0.28012 28.209 4.7773  0.001 ***
+## Pop        1 0.009129 0.0091294 0.16206 16.320 4.7097  0.001 ***
+## Sex:Pop    1 0.003453 0.0034532 0.06130  6.173 3.7015  0.001 ***
+## Residuals 50 0.027970 0.0005594 0.49651                         
+## Total     53 0.056333                                           
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
@@ -472,7 +472,8 @@ it is not performed unless requested.</p>
 <div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>fitm <span class="ot">&lt;-</span> <span class="fu">manova.update</span>(fit, <span class="at">print.progress =</span> <span class="cn">FALSE</span>, <span class="at">tol =</span> <span class="dv">0</span>)</span>
 <span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="fu">attributes</span>(fitm)</span></code></pre></div>
 <pre><code>## $names
-## [1] &quot;call&quot;     &quot;LM&quot;       &quot;ANOVA&quot;    &quot;PermInfo&quot; &quot;turbo&quot;    &quot;verbose&quot;  &quot;MANOVA&quot;  
+## [1] &quot;call&quot;     &quot;LM&quot;       &quot;ANOVA&quot;    &quot;PermInfo&quot; &quot;turbo&quot;    &quot;verbose&quot;  &quot;subTest&quot; 
+## [8] &quot;MANOVA&quot;  
 ## 
 ## $class
 ## [1] &quot;manova.lm.rrpp&quot; &quot;lm.rrpp&quot;</code></pre>
@@ -551,12 +552,12 @@ dimensions is not recommended as a typical solution):</p>
 ## Sums of Squares and Cross-products: Type I 
 ## Effect sizes (Z) based on F distributions
 ## 
-##           Df       SS        MS     Rsq      F      Z Pr(&gt;F)   
-## Sex        1 0.015780 0.0157802 0.28012 28.209 4.7773  0.001 **
-## Pop        1 0.009129 0.0091294 0.16206 16.320 4.7097  0.001 **
-## Sex:Pop    1 0.003453 0.0034532 0.06130  6.173 3.7015  0.001 **
-## Residuals 50 0.027970 0.0005594 0.49651                        
-## Total     53 0.056333                                          
+##           Df       SS        MS     Rsq      F      Z Pr(&gt;F)    
+## Sex        1 0.015780 0.0157802 0.28012 28.209 4.7773  0.001 ***
+## Pop        1 0.009129 0.0091294 0.16206 16.320 4.7097  0.001 ***
+## Sex:Pop    1 0.003453 0.0034532 0.06130  6.173 3.7015  0.001 ***
+## Residuals 50 0.027970 0.0005594 0.49651                         
+## Total     53 0.056333                                           
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
@@ -591,12 +592,12 @@ analysis.</p>
 ## Sums of Squares and Cross-products: Type I 
 ## Effect sizes (Z) based on F distributions
 ## 
-##           Df       SS        MS     Rsq      F      Z Pr(&gt;F)   
-## Sex        1 0.015780 0.0157802 0.28012 28.209 4.7773  0.001 **
-## Pop        1 0.009129 0.0091294 0.16206 16.320 4.7097  0.001 **
-## Sex:Pop    1 0.003453 0.0034532 0.06130  6.173 3.7015  0.001 **
-## Residuals 50 0.027970 0.0005594 0.49651                        
-## Total     53 0.056333                                          
+##           Df       SS        MS     Rsq      F      Z Pr(&gt;F)    
+## Sex        1 0.015780 0.0157802 0.28012 28.209 4.7773  0.001 ***
+## Pop        1 0.009129 0.0091294 0.16206 16.320 4.7097  0.001 ***
+## Sex:Pop    1 0.003453 0.0034532 0.06130  6.173 3.7015  0.001 ***
+## Residuals 50 0.027970 0.0005594 0.49651                         
+## Total     53 0.056333                                           
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 

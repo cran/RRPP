@@ -11,7 +11,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 
-<meta name="date" content="2023-08-15" />
+<meta name="date" content="2024-02-06" />
 
 <title>Using RRPP</title>
 
@@ -338,7 +338,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 
 <h1 class="title toc-ignore">Using RRPP</h1>
-<h4 class="date">2023-08-15</h4>
+<h4 class="date">2024-02-06</h4>
 
 
 
@@ -399,7 +399,7 @@ code highlights the analytical steps, with results categorized in Fig.
 ## Final X columns (rank): 9 
 ## Check coefficients or degrees of freedom in ANOVA to see changes.
 ##  
-## Use options(warn = -1) to turn off these warnings.</code></pre>
+## Use suppressWarnings() to turn off these warnings.</code></pre>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">summary</span>(fit)</span></code></pre></div>
 <pre><code>## 
 ## Linear Model fit with lm.rrpp
@@ -440,12 +440,12 @@ code highlights the analytical steps, with results categorized in Fig.
 ## Sums of Squares and Cross-products: Type I 
 ## Effect sizes (Z) based on F distributions
 ## 
-##                Df      SS      MS     Rsq       F      Z Pr(&gt;F)   
-## sex             1  0.6091 0.60911 0.04457 14.4087 2.7924  0.002 **
-## locality        1  0.4712 0.47121 0.03448 11.1466 2.6477  0.002 **
-## locality:year   6  1.6379 0.27298 0.11984  6.4574 4.2051  0.001 **
-## Residuals     259 10.9489 0.04227 0.80111                         
-## Total         267 13.6670                                         
+##                Df      SS      MS     Rsq       F      Z Pr(&gt;F)    
+## sex             1  0.6091 0.60911 0.04457 14.4087 2.7924  0.002 ** 
+## locality        1  0.4712 0.47121 0.03448 11.1466 2.6477  0.002 ** 
+## locality:year   6  1.6379 0.27298 0.11984  6.4574 4.2051  0.001 ***
+## Residuals     259 10.9489 0.04227 0.80111                          
+## Total         267 13.6670                                          
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
@@ -478,12 +478,12 @@ calculation:</p>
 ## Sums of Squares and Cross-products: Type I 
 ## Effect sizes (Z) based on F distributions
 ## 
-##                Df      SS      MS     Rsq       F      Z Pr(&gt;F)   
-## sex             1  0.6091 0.60911 0.04457 14.4087 2.7924  0.002 **
-## locality        1  0.4712 0.47121 0.03448  1.7262 0.7158  0.234   
-## locality:year   6  1.6379 0.27298 0.11984  6.4574 4.2051  0.001 **
-## Residuals     259 10.9489 0.04227 0.80111                         
-## Total         267 13.6670                                         
+##                Df      SS      MS     Rsq       F      Z Pr(&gt;F)    
+## sex             1  0.6091 0.60911 0.04457 14.4087 2.7924  0.002 ** 
+## locality        1  0.4712 0.47121 0.03448  1.7262 0.7158  0.234    
+## locality:year   6  1.6379 0.27298 0.11984  6.4574 4.2051  0.001 ***
+## Residuals     259 10.9489 0.04227 0.80111                          
+## Total         267 13.6670                                          
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
@@ -512,7 +512,7 @@ multi-model inference.</p>
 ## Final X columns (rank): 9 
 ## Check coefficients or degrees of freedom in ANOVA to see changes.
 ##  
-## Use options(warn = -1) to turn off these warnings.</code></pre>
+## Use suppressWarnings() to turn off these warnings.</code></pre>
 <div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">anova</span>(fit.sex, fit.sex.loc, fit.sex.loc.year, <span class="at">print.progress=</span> <span class="cn">FALSE</span>)</span></code></pre></div>
 <pre><code>## 
 ## Analysis of Variance, using Residual Randomization
@@ -549,6 +549,7 @@ ascertain which have the largest effect:</p>
 ## 1000 random permutations using RRPP 
 ## 
 ##                            d.obs  UCL (95%)         Zd Pr(&gt;d)
+## (Intercept)           2.96477681 3.04339947 -3.2821898  0.998
 ## sexMale               0.09579938 0.05535808  2.6097241  0.003
 ## localitySH            0.09164189 0.05788327  2.5097854  0.004
 ## localitySH:year1998   0.06402169 0.13652635  0.4170950  0.355
@@ -595,7 +596,7 @@ the model:</p>
 ## Final X columns (rank): 9 
 ## Check coefficients or degrees of freedom in ANOVA to see changes.
 ##  
-## Use options(warn = -1) to turn off these warnings.</code></pre>
+## Use suppressWarnings() to turn off these warnings.</code></pre>
 <div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" tabindex="-1"></a>fit3 <span class="ot">&lt;-</span> <span class="fu">lm.rrpp</span>(logHeadSize <span class="sc">~</span> sex <span class="sc">+</span> locality<span class="sc">/</span>year, </span>
 <span id="cb22-2"><a href="#cb22-2" tabindex="-1"></a>                <span class="at">SS.type =</span> <span class="st">&quot;III&quot;</span>, <span class="at">data =</span> PupfishHeads, <span class="at">print.progress =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
 <pre><code>## Warning: 
@@ -607,7 +608,7 @@ the model:</p>
 ## Final X columns (rank): 9 
 ## Check coefficients or degrees of freedom in ANOVA to see changes.
 ##  
-## Use options(warn = -1) to turn off these warnings.</code></pre>
+## Use suppressWarnings() to turn off these warnings.</code></pre>
 <div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" tabindex="-1"></a><span class="fu">anova</span>(fit)</span></code></pre></div>
 <pre><code>## 
 ## Analysis of Variance, using Residual Randomization
@@ -617,12 +618,12 @@ the model:</p>
 ## Sums of Squares and Cross-products: Type I 
 ## Effect sizes (Z) based on F distributions
 ## 
-##                Df      SS      MS     Rsq       F      Z Pr(&gt;F)   
-## sex             1  0.6091 0.60911 0.04457 14.4087 2.7924  0.002 **
-## locality        1  0.4712 0.47121 0.03448 11.1466 2.6477  0.002 **
-## locality:year   6  1.6379 0.27298 0.11984  6.4574 4.2051  0.001 **
-## Residuals     259 10.9489 0.04227 0.80111                         
-## Total         267 13.6670                                         
+##                Df      SS      MS     Rsq       F      Z Pr(&gt;F)    
+## sex             1  0.6091 0.60911 0.04457 14.4087 2.7924  0.002 ** 
+## locality        1  0.4712 0.47121 0.03448 11.1466 2.6477  0.002 ** 
+## locality:year   6  1.6379 0.27298 0.11984  6.4574 4.2051  0.001 ***
+## Residuals     259 10.9489 0.04227 0.80111                          
+## Total         267 13.6670                                          
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
@@ -638,12 +639,11 @@ the model:</p>
 ## Sums of Squares and Cross-products: Type II 
 ## Effect sizes (Z) based on F distributions
 ## 
-##                Df      SS      MS     Rsq       F      Z Pr(&gt;F)   
-## sex             1  0.5554 0.55537 0.04064 13.1376 2.6737  0.002 **
-## locality        1  0.4712 0.47121 0.03448 11.1466 2.6477  0.002 **
-## locality:year   6  1.6379 0.27298 0.11984  6.4574 4.2051  0.001 **
-## Residuals     259 10.9489 0.04227 0.80111                         
-## Total         267 13.6670                                         
+##                Df      SS      MS     Rsq       F      Z Pr(&gt;F)    
+## sex             1  0.5554 0.55537 0.04064 13.1376 2.6737  0.002 ** 
+## locality:year   6  1.6379 0.27298 0.11984  6.4574 4.2051  0.001 ***
+## Residuals     259 10.9489 0.04227 0.80111                          
+## Total         267 13.6670                                          
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
@@ -658,12 +658,12 @@ the model:</p>
 ## Sums of Squares and Cross-products: Type III 
 ## Effect sizes (Z) based on F distributions
 ## 
-##                Df      SS      MS     Rsq       F      Z Pr(&gt;F)   
-## sex             1  0.5554 0.55537 0.04064 13.1376 2.6737  0.002 **
-## locality        1  0.0573 0.05733 0.00419  1.3562 0.7005  0.255   
-## locality:year   6  1.6379 0.27298 0.11984  6.4574 4.2051  0.001 **
-## Residuals     259 10.9489 0.04227 0.80111                         
-## Total         267 13.6670                                         
+##                Df      SS      MS     Rsq       F      Z Pr(&gt;F)    
+## sex             1  0.5554 0.55537 0.04064 13.1376 2.6737  0.002 ** 
+## locality        1  0.0573 0.05733 0.00419  1.3562 0.7005  0.255    
+## locality:year   6  1.6379 0.27298 0.11984  6.4574 4.2051  0.001 ***
+## Residuals     259 10.9489 0.04227 0.80111                          
+## Total         267 13.6670                                          
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
@@ -768,13 +768,13 @@ quite the same as the first example:</p>
 ## Sums of Squares and Cross-products: Type I 
 ## Effect sizes (Z) based on F distributions
 ## 
-##           Df       SS        MS     Rsq       F      Z Pr(&gt;F)   
-## logSize    1 0.014019 0.0140193 0.24886 28.5232 4.9982  0.001 **
-## Sex        1 0.007615 0.0076151 0.13518 15.4933 4.6798  0.001 **
-## Pop        1 0.007661 0.0076606 0.13599 15.5860 4.3464  0.001 **
-## Sex:Pop    1 0.002954 0.0029542 0.05244  6.0105 3.4054  0.002 **
-## Residuals 49 0.024084 0.0004915 0.42753                         
-## Total     53 0.056333                                           
+##           Df       SS        MS     Rsq       F      Z Pr(&gt;F)    
+## logSize    1 0.014019 0.0140193 0.24886 28.5232 4.9982  0.001 ***
+## Sex        1 0.007615 0.0076151 0.13518 15.4933 4.6798  0.001 ***
+## Pop        1 0.007661 0.0076606 0.13599 15.5860 4.3464  0.001 ***
+## Sex:Pop    1 0.002954 0.0029542 0.05244  6.0105 3.4054  0.002 ** 
+## Residuals 49 0.024084 0.0004915 0.42753                          
+## Total     53 0.056333                                            
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
@@ -795,11 +795,12 @@ quite the same as the first example:</p>
 ##           based on
 ## 1000 random permutations using RRPP 
 ## 
-##                       d.obs  UCL (95%)       Zd Pr(&gt;d)
-## logSize          0.11101234 0.04871922 4.148348  0.001
-## SexM             0.02755503 0.01300605 4.120183  0.001
-## PopSinkhole      0.02895656 0.01256411 4.121852  0.001
-## SexM:PopSinkhole 0.03002431 0.01772916 3.469951  0.002</code></pre>
+##                       d.obs  UCL (95%)        Zd Pr(&gt;d)
+## (Intercept)      1.10733195 1.02154943 12.088277  0.001
+## logSize          0.11101234 0.04871922  4.148348  0.001
+## SexM             0.02755503 0.01300605  4.120183  0.001
+## PopSinkhole      0.02895656 0.01256411  4.121852  0.001
+## SexM:PopSinkhole 0.03002431 0.01772916  3.469951  0.002</code></pre>
 <p>ANOVA results reveal that after accounting for body size allometry,
 not only are there significant inter-population differences in body
 shape and sexual dimorphism in body shape, but sexual dimorphism also
@@ -1225,13 +1226,13 @@ code:</p>
 ## Sums of Squares and Cross-products: Type I 
 ## Effect sizes (Z) based on F distributions
 ## 
-##           Df       SS        MS     Rsq       F      Z Pr(&gt;F)   
-## logSize    1 0.014019 0.0140193 0.24886 28.5232 4.9982  0.001 **
-## Sex        1 0.007615 0.0076151 0.13518 15.4933 4.6798  0.001 **
-## Pop        1 0.007661 0.0076606 0.13599 15.5860 4.3464  0.001 **
-## Sex:Pop    1 0.002954 0.0029542 0.05244  6.0105 3.4054  0.002 **
-## Residuals 49 0.024084 0.0004915 0.42753                         
-## Total     53 0.056333                                           
+##           Df       SS        MS     Rsq       F      Z Pr(&gt;F)    
+## logSize    1 0.014019 0.0140193 0.24886 28.5232 4.9982  0.001 ***
+## Sex        1 0.007615 0.0076151 0.13518 15.4933 4.6798  0.001 ***
+## Pop        1 0.007661 0.0076606 0.13599 15.5860 4.3464  0.001 ***
+## Sex:Pop    1 0.002954 0.0029542 0.05244  6.0105 3.4054  0.002 ** 
+## Residuals 49 0.024084 0.0004915 0.42753                          
+## Total     53 0.056333                                            
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
@@ -1246,13 +1247,13 @@ code:</p>
 ## Sums of Squares and Cross-products: Type I 
 ## Effect sizes (Z) based on F distributions
 ## 
-##           Df       SS        MS     Rsq       F      Z Pr(&gt;F)   
-## logSize    1 0.014019 0.0140193 0.24886 28.5232 4.9982  0.001 **
-## Sex        1 0.007615 0.0076151 0.13518 15.4933 4.6798  0.001 **
-## Pop        1 0.007661 0.0076606 0.13599 15.5860 4.3464  0.001 **
-## Sex:Pop    1 0.002954 0.0029542 0.05244  6.0105 3.4054  0.002 **
-## Residuals 49 0.024084 0.0004915 0.42753                         
-## Total     53 0.056333                                           
+##           Df       SS        MS     Rsq       F      Z Pr(&gt;F)    
+## logSize    1 0.014019 0.0140193 0.24886 28.5232 4.9982  0.001 ***
+## Sex        1 0.007615 0.0076151 0.13518 15.4933 4.6798  0.001 ***
+## Pop        1 0.007661 0.0076606 0.13599 15.5860 4.3464  0.001 ***
+## Sex:Pop    1 0.002954 0.0029542 0.05244  6.0105 3.4054  0.002 ** 
+## Residuals 49 0.024084 0.0004915 0.42753                          
+## Total     53 0.056333                                            
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
@@ -1284,10 +1285,10 @@ and evaluates them as in previous examples:</p>
 ## Sums of Squares and Cross-products: Type I 
 ## Effect sizes (Z) based on F distributions
 ## 
-##           Df     SS     MS     Rsq      F      Z Pr(&gt;F)   
-## SVL        1 3707.9 3707.9 0.76849 116.18 5.7522  0.001 **
-## Residuals 35 1117.0   31.9 0.23151                        
-## Total     36 4824.9                                       
+##           Df     SS     MS     Rsq      F      Z Pr(&gt;F)    
+## SVL        1 3707.9 3707.9 0.76849 116.18 5.7522  0.001 ***
+## Residuals 35 1117.0   31.9 0.23151                         
+## Total     36 4824.9                                        
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
@@ -1302,10 +1303,10 @@ and evaluates them as in previous examples:</p>
 ## Sums of Squares and Cross-products: Type I 
 ## Effect sizes (Z) based on F distributions
 ## 
-##           Df     SS      MS     Rsq     F      Z Pr(&gt;F)   
-## SVL        1 189.34 189.343 0.34259 18.24 3.2047  0.001 **
-## Residuals 35 363.33  10.381 0.65741                       
-## Total     36 552.68                                       
+##           Df     SS      MS     Rsq     F      Z Pr(&gt;F)    
+## SVL        1 189.34 189.343 0.34259 18.24 3.2047  0.001 ***
+## Residuals 35 363.33  10.381 0.65741                        
+## Total     36 552.68                                        
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
@@ -1326,8 +1327,9 @@ and evaluates them as in previous examples:</p>
 ##           based on
 ## 1000 random permutations using RRPP 
 ## 
-##         d.obs UCL (95%)       Zd Pr(&gt;d)
-## SVL 0.9681511 0.3597148 3.907365  0.001</code></pre>
+##                 d.obs  UCL (95%)        Zd Pr(&gt;d)
+## (Intercept) 1.2992281 78.8741190 -5.076122  1.000
+## SVL         0.9681511  0.3597148  3.907365  0.001</code></pre>
 <div class="sourceCode" id="cb75"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" tabindex="-1"></a><span class="fu">coef</span>(fitGLS, <span class="at">test =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
 <pre><code>## 
 ## Linear Model fit with lm.rrpp
@@ -1343,8 +1345,9 @@ and evaluates them as in previous examples:</p>
 ##           based on
 ## 1000 random permutations using RRPP 
 ## 
-##         d.obs UCL (95%)       Zd Pr(&gt;d)
-## SVL 0.8307223 0.4503532 2.894442  0.001</code></pre>
+##                 d.obs  UCL (95%)        Zd Pr(&gt;d)
+## (Intercept) 8.4214060 84.8051556 -2.771770  0.999
+## SVL         0.8307223  0.4503532  2.894442  0.001</code></pre>
 <p>Although analyses on either model fit indicate a significant
 relationship between tail length and snout-to-vent length (SVL), the GLS
 coefficients test and ANOVA show how phylogenetic auto-correlation among
@@ -1376,10 +1379,10 @@ multivariate example:</p>
 ## Sums of Squares and Cross-products: Type I 
 ## Effect sizes (Z) based on F distributions
 ## 
-##           Df      SS     MS     Rsq     F      Z Pr(&gt;F)   
-## SVL        1  8135.3 8135.3 0.76867 116.3 5.0898  0.001 **
-## Residuals 35  2448.3   70.0 0.23133                       
-## Total     36 10583.7                                      
+##           Df      SS     MS     Rsq     F      Z Pr(&gt;F)    
+## SVL        1  8135.3 8135.3 0.76867 116.3 5.0898  0.001 ***
+## Residuals 35  2448.3   70.0 0.23133                        
+## Total     36 10583.7                                       
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
@@ -1394,10 +1397,10 @@ multivariate example:</p>
 ## Sums of Squares and Cross-products: Type I 
 ## Effect sizes (Z) based on F distributions
 ## 
-##           Df      SS     MS     Rsq      F      Z Pr(&gt;F)   
-## SVL        1  395.35 395.35 0.34715 18.611 3.0419  0.001 **
-## Residuals 35  743.49  21.24 0.65285                        
-## Total     36 1138.84                                       
+##           Df      SS     MS     Rsq      F      Z Pr(&gt;F)    
+## SVL        1  395.35 395.35 0.34715 18.611 3.0419  0.001 ***
+## Residuals 35  743.49  21.24 0.65285                         
+## Total     36 1138.84                                        
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
@@ -1424,6 +1427,7 @@ hierarchically, i.e.:</p>
 <div class="sourceCode" id="cb83"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb83-1"><a href="#cb83-1" tabindex="-1"></a><span class="fu">attributes</span>(fit)</span></code></pre></div>
 <pre><code>## $names
 ## [1] &quot;call&quot;     &quot;LM&quot;       &quot;ANOVA&quot;    &quot;PermInfo&quot; &quot;turbo&quot;    &quot;Models&quot;   &quot;verbose&quot; 
+## [8] &quot;subTest&quot; 
 ## 
 ## $class
 ## [1] &quot;lm.rrpp&quot;</code></pre>

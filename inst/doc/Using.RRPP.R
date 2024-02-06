@@ -31,14 +31,14 @@ anova(fit.sex, fit.sex.loc, fit.sex.loc.year, print.progress= FALSE)
 ## -----------------------------------------------------------------------------
 coef(fit, test = TRUE)
 
-## ---- fig.height=3, fig.width=5-----------------------------------------------
+## ----fig.height=3, fig.width=5------------------------------------------------
 sizeDF <- data.frame(sex = c("Female", "Male"))
 rownames(sizeDF) <- c("Female", "Male")
 sizePreds <- predict(fit, sizeDF)
 plot(sizePreds)
 
 
-## ---- fig.height=3, fig.width=5-----------------------------------------------
+## ----fig.height=3, fig.width=5------------------------------------------------
 plot(sizePreds, pch = 21, cex = 3, bg = c(2,4), lwd = 2)
 
 
@@ -64,13 +64,13 @@ anova(fit)
 coef(fit, test = TRUE) 
 
 
-## ---- error = TRUE------------------------------------------------------------
+## ----error = TRUE-------------------------------------------------------------
 fit$LM$data$coords <- Pupfish$coords
 fit.par <- lm(fit$call$f1, data = fit$LM$data)
 identical(fit$LM$coefficients, fit.par$coefficients)
 summary(manova(fit.par))
 
-## ---- fig.height=5, fig.width=6-----------------------------------------------
+## ----fig.height=5, fig.width=6------------------------------------------------
 shapeDF <- expand.grid(Sex = levels(Pupfish$Sex), Pop = levels(Pupfish$Pop))
 rownames(shapeDF) <- paste(shapeDF$Sex, shapeDF$Pop, sep = ".")
 shapePreds <- predict(fit, shapeDF, confidence = 0.95)
@@ -83,7 +83,7 @@ plot(fit, type = "PC") # generic
 plot(fit, type = "PC", pch = 19, col = groups) # with added par arguments
 
 
-## ---- fig.height=5, fig.width=6-----------------------------------------------
+## ----fig.height=5, fig.width=6------------------------------------------------
 plot(fit, type = "regression", reg.type = "PredLine", 
     predictor = Pupfish$logSize, pch=19,
     col = as.numeric(groups))
@@ -143,7 +143,7 @@ coef(fitOLS, test = TRUE)
 coef(fitGLS, test = TRUE)
 
 
-## ---- fig.height=4, fig.width=8-----------------------------------------------
+## ----fig.height=4, fig.width=8------------------------------------------------
 Y <- as.matrix(cbind(PlethMorph$TailLength,
 PlethMorph$HeadLength,
 PlethMorph$TailLength,
