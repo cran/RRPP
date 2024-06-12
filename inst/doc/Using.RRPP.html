@@ -11,7 +11,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 
-<meta name="date" content="2024-06-04" />
+<meta name="date" content="2024-06-12" />
 
 <title>Using RRPP</title>
 
@@ -338,7 +338,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 
 <h1 class="title toc-ignore">Using RRPP</h1>
-<h4 class="date">2024-06-04</h4>
+<h4 class="date">2024-06-12</h4>
 
 
 
@@ -809,8 +809,8 @@ parametric M-ANOVA. The following code attempts to perform a parametric
 M-ANOVA:</p>
 <div class="sourceCode" id="cb36"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" tabindex="-1"></a>fit<span class="sc">$</span>LM<span class="sc">$</span>data<span class="sc">$</span>coords <span class="ot">&lt;-</span> Pupfish<span class="sc">$</span>coords</span>
 <span id="cb36-2"><a href="#cb36-2" tabindex="-1"></a>fit.par <span class="ot">&lt;-</span> <span class="fu">lm</span>(fit<span class="sc">$</span>call<span class="sc">$</span>f1, <span class="at">data =</span> fit<span class="sc">$</span>LM<span class="sc">$</span>data)</span>
-<span id="cb36-3"><a href="#cb36-3" tabindex="-1"></a><span class="fu">identical</span>(fit<span class="sc">$</span>LM<span class="sc">$</span>coefficients, fit.par<span class="sc">$</span>coefficients)</span></code></pre></div>
-<pre><code>## [1] FALSE</code></pre>
+<span id="cb36-3"><a href="#cb36-3" tabindex="-1"></a><span class="fu">all.equal</span>(fit<span class="sc">$</span>LM<span class="sc">$</span>coefficients, fit.par<span class="sc">$</span>coefficients)</span></code></pre></div>
+<pre><code>## [1] TRUE</code></pre>
 <div class="sourceCode" id="cb38"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" tabindex="-1"></a><span class="fu">summary</span>(<span class="fu">manova</span>(fit.par))</span></code></pre></div>
 <pre><code>## Error in summary.manova(manova(fit.par)): residuals have rank 49 &lt; 112</code></pre>
 <p>Although both functions return the same coefficients, the error
