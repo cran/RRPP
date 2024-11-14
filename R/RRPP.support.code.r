@@ -1871,7 +1871,7 @@ getLSmeans <- function(fit, g){
   Xn <- model.matrix(~ g + 0)
   Q <- QRforX(Xn, reduce = FALSE)
   H <- tcrossprod(fast.solve(Q$R), Q$Q)
-  getCoef <- function(f) H %*% f
+  getCoef <- function(f) as.matrix(H %*% f)
   means <- lapply(fitted, getCoef)
   rename <- function(x) {
     dimnames(x)[[1]] <- levels(g)
@@ -1952,7 +1952,7 @@ d.summary.from.list <- function(M, confidence = 0.95){
   list(D=M[[1]], P=P, Z=Z, CL=CL, confidence = confidence)
 }
 
-# d.summary.from.list
+# r.summary.from.list
 # find vec correlation statistics from a list
 # used in pairwise
 r.summary.from.list <- function(M, confidence = 0.95){
@@ -2100,7 +2100,7 @@ logL <- function(fit, tol = NULL, pc.no = NULL){
   logdetSig <- determinant(Sig, logarithm = TRUE)$modulus
   
   ll <- -0.5 * (n * rnk * log(2 * pi) + rnk * logdetC +
-                  n * logdetSig + n) 
+                  n * logdetSig + n * rnk) 
   
   list(logL = ll, rank = rnk)
   

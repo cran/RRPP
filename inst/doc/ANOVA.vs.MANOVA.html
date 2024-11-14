@@ -12,7 +12,7 @@
 
 <meta name="author" content="Michael L. Collyer" />
 
-<meta name="date" content="2024-06-22" />
+<meta name="date" content="2024-11-13" />
 
 <title>ANOVA versus MANOVA in RRPP</title>
 
@@ -62,7 +62,7 @@ div.sourceCode { overflow: auto; }
 }
 @media print {
 pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
 { counter-reset: source-line 0; }
@@ -340,7 +340,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 <h1 class="title toc-ignore">ANOVA versus MANOVA in RRPP</h1>
 <h4 class="author">Michael L. Collyer</h4>
-<h4 class="date">2024-06-22</h4>
+<h4 class="date">2024-11-13</h4>
 
 
 
@@ -496,7 +496,10 @@ table.</p>
 ## Number of observations: 54
 ## Number of dependent variables: 112
 ## Data space dimensions: 53
-## Residual covariance matrix rank: 50
+## Residual covariance matrix rank: 111
+##    Data reduced to 53 PCs, as required or prescribed.
+##    100 % of overall variation explained by these PCs.
+##    See $MANOVA$PCA from manova.lm.rrpp object for more information.
 ## Sums of Squares and Cross-products: Type I
 ## Number of permutations: 1000 
 ## 
@@ -513,7 +516,10 @@ table.</p>
 ## Number of observations: 54
 ## Number of dependent variables: 112
 ## Data space dimensions: 53
-## Residual covariance matrix rank: 50
+## Residual covariance matrix rank: 111
+##    Data reduced to 53 PCs, as required or prescribed.
+##    100 % of overall variation explained by these PCs.
+##    See $MANOVA$PCA from manova.lm.rrpp object for more information.
 ## Sums of Squares and Cross-products: Type I
 ## Number of permutations: 1000 
 ## 
@@ -570,7 +576,10 @@ dimensions is not recommended as a typical solution):</p>
 ## Number of observations: 54
 ## Number of dependent variables: 112
 ## Data space dimensions: 53
-## Residual covariance matrix rank: 50
+## Residual covariance matrix rank: 111
+##    Data reduced to 53 PCs, as required or prescribed.
+##    100 % of overall variation explained by these PCs.
+##    See $MANOVA$PCA from manova.lm.rrpp object for more information.
 ## Sums of Squares and Cross-products: Type I
 ## Number of permutations: 1000 
 ## 
@@ -610,9 +619,9 @@ analysis.</p>
 ## Number of observations: 54
 ## Number of dependent variables: 112
 ## Data space dimensions: 53
-## Residual covariance matrix rank: 50
+## Residual covariance matrix rank: 111
 ##    Data reduced to 10 PCs, as required or prescribed.
-##    2 % of overall variation explained by these PCs.
+##    93.3 % of overall variation explained by these PCs.
 ##    See $MANOVA$PCA from manova.lm.rrpp object for more information.
 ## Sums of Squares and Cross-products: Type I
 ## Number of permutations: 1000 
