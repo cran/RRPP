@@ -65,10 +65,12 @@ coef(fit, test = TRUE)
 
 
 ## ----error = TRUE-------------------------------------------------------------
+try({
 fit$LM$data$coords <- Pupfish$coords
 fit.par <- lm(fit$call$f1, data = fit$LM$data)
 all.equal(fit$LM$coefficients, fit.par$coefficients)
 summary(manova(fit.par))
+})
 
 ## ----fig.height=5, fig.width=6------------------------------------------------
 shapeDF <- expand.grid(Sex = levels(Pupfish$Sex), Pop = levels(Pupfish$Pop))

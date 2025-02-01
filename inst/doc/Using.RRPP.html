@@ -11,7 +11,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 
-<meta name="date" content="2024-11-13" />
+<meta name="date" content="2025-01-31" />
 
 <title>Using RRPP</title>
 
@@ -338,7 +338,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 
 <h1 class="title toc-ignore">Using RRPP</h1>
-<h4 class="date">2024-11-13</h4>
+<h4 class="date">2025-01-31</h4>
 
 
 
@@ -535,6 +535,10 @@ multi-model inference.</p>
 ascertain which have the largest effect:</p>
 <div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="fu">coef</span>(fit, <span class="at">test =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
 <pre><code>## 
+## Please be aware that the test of coefficients will be deprecated.
+## Use betaTest, which is more flexible;
+## e.g., betaTest(fit, null.method = &#39;terms&#39;)
+## 
 ## Linear Model fit with lm.rrpp
 ## 
 ## Number of observations: 268
@@ -543,10 +547,10 @@ ascertain which have the largest effect:</p>
 ## Sums of Squares and Cross-products: Type I
 ## Number of permutations: 1000
 ## 
-## Statistics (distances) of coefficients with 95 percent confidence intervals,
-## effect sizes, and probabilities of exceeding observed values 
-##           based on
-## 1000 random permutations using RRPP 
+## Statistics (distances) of coefficients with 
+## 95 percent confidence intervals, effect sizes,
+## and probabilities of exceeding observed values,
+## based on 1000 random permutations, using RRPP 
 ## 
 ##                            d.obs  UCL (95%)         Zd Pr(&gt;d)
 ## sexMale               0.09579938 0.05535808  2.6097241  0.003
@@ -781,6 +785,10 @@ quite the same as the first example:</p>
 ##     data = Pupfish, print.progress = FALSE, verbose = TRUE)</code></pre>
 <div class="sourceCode" id="cb34"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" tabindex="-1"></a><span class="fu">coef</span>(fit, <span class="at">test =</span> <span class="cn">TRUE</span>) </span></code></pre></div>
 <pre><code>## 
+## Please be aware that the test of coefficients will be deprecated.
+## Use betaTest, which is more flexible;
+## e.g., betaTest(fit, null.method = &#39;terms&#39;)
+## 
 ## Linear Model fit with lm.rrpp
 ## 
 ## Number of observations: 54
@@ -789,10 +797,10 @@ quite the same as the first example:</p>
 ## Sums of Squares and Cross-products: Type I
 ## Number of permutations: 1000
 ## 
-## Statistics (distances) of coefficients with 95 percent confidence intervals,
-## effect sizes, and probabilities of exceeding observed values 
-##           based on
-## 1000 random permutations using RRPP 
+## Statistics (distances) of coefficients with 
+## 95 percent confidence intervals, effect sizes,
+## and probabilities of exceeding observed values,
+## based on 1000 random permutations, using RRPP 
 ## 
 ##                       d.obs  UCL (95%)       Zd Pr(&gt;d)
 ## logSize          0.11101234 0.04871922 4.148348  0.001
@@ -1312,6 +1320,10 @@ and evaluates them as in previous examples:</p>
 ##     Cov = PlethMorph$PhyCov, print.progress = FALSE, verbose = TRUE)</code></pre>
 <div class="sourceCode" id="cb73"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb73-1"><a href="#cb73-1" tabindex="-1"></a><span class="fu">coef</span>(fitOLS, <span class="at">test =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
 <pre><code>## 
+## Please be aware that the test of coefficients will be deprecated.
+## Use betaTest, which is more flexible;
+## e.g., betaTest(fit, null.method = &#39;terms&#39;)
+## 
 ## Linear Model fit with lm.rrpp
 ## 
 ## Number of observations: 37
@@ -1320,15 +1332,19 @@ and evaluates them as in previous examples:</p>
 ## Sums of Squares and Cross-products: Type I
 ## Number of permutations: 1000
 ## 
-## Statistics (distances) of coefficients with 95 percent confidence intervals,
-## effect sizes, and probabilities of exceeding observed values 
-##           based on
-## 1000 random permutations using RRPP 
+## Statistics (distances) of coefficients with 
+## 95 percent confidence intervals, effect sizes,
+## and probabilities of exceeding observed values,
+## based on 1000 random permutations, using RRPP 
 ## 
 ##         d.obs UCL (95%)       Zd Pr(&gt;d)
 ## SVL 0.9681511 0.3597148 3.907365  0.001</code></pre>
 <div class="sourceCode" id="cb75"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" tabindex="-1"></a><span class="fu">coef</span>(fitGLS, <span class="at">test =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
 <pre><code>## 
+## Please be aware that the test of coefficients will be deprecated.
+## Use betaTest, which is more flexible;
+## e.g., betaTest(fit, null.method = &#39;terms&#39;)
+## 
 ## Linear Model fit with lm.rrpp
 ## 
 ## Number of observations: 37
@@ -1337,10 +1353,10 @@ and evaluates them as in previous examples:</p>
 ## Sums of Squares and Cross-products: Type I
 ## Number of permutations: 1000
 ## 
-## Statistics (distances) of coefficients with 95 percent confidence intervals,
-## effect sizes, and probabilities of exceeding observed values 
-##           based on
-## 1000 random permutations using RRPP 
+## Statistics (distances) of coefficients with 
+## 95 percent confidence intervals, effect sizes,
+## and probabilities of exceeding observed values,
+## based on 1000 random permutations, using RRPP 
 ## 
 ##         d.obs UCL (95%)       Zd Pr(&gt;d)
 ## SVL 0.8307223 0.4503532 2.894442  0.001</code></pre>

@@ -1,3 +1,10 @@
+# CHANGES IN RRPP 2.1.0
+
+### NEW FEATURES
++ New function, `kcomp`, which performs a K-component analysis.
++ New function, `betaTest`, which performs tests of coefficients vectors,
+with enhanced flexibility compared to `coef.lm.rrpp`.
+
 # CHANGES IN RRPP 2.0.4
 
 ### NEW FEATURES

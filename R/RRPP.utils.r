@@ -431,6 +431,10 @@ print.coef.lm.rrpp <- function(x, ...){
   
   if(x$test){
     
+    cat("\nPlease be aware that the test of coefficients will be deprecated.")
+    cat("\nUse betaTest, which is more flexible;")
+    cat("\ne.g., betaTest(fit, null.method = 'terms')\n")
+    
     cat("\nLinear Model fit with lm.rrpp\n")
     cat(paste("\nNumber of observations:", x$n))
     cat(paste("\nNumber of dependent variables:", x$p))
@@ -444,11 +448,10 @@ print.coef.lm.rrpp <- function(x, ...){
       print(x$coef.obs)
     } else {
       rrpp.type <- x$RRPP
-      cat("\n\nStatistics (distances) of coefficients with ")
-      cat(x$confidence*100, "percent confidence intervals,") 
-      cat("\neffect sizes, and probabilities of exceeding observed values 
-          based on\n") 
-      cat(x$nperms, "random permutations using", rrpp.type, "\n\n")
+      cat("\n\nStatistics (distances) of coefficients with \n")
+      cat(x$confidence*100, "percent confidence intervals, effect sizes,") 
+      cat("\nand probabilities of exceeding observed values,")
+      cat("\nbased on", x$nperms, "random permutations, using", rrpp.type, "\n\n") 
       print(x$stat.tab)
       cat("\n\n")
     }
@@ -1235,14 +1238,18 @@ print.pairwise <- function(x, ...){
 #' can be expressed in radians or degrees.  Vector correlation indicates 
 #' the similarity of 
 #' vector orientation, independent of vector length.}
-#' \item{\bold{Difference in vector lengths, "DL"}}{  If the length of a 
-#' vector is an important attribute -- e.g., the amount of multivariate 
-#' change per one-unit
+#' \item{\bold{Difference between vector lengths, "DL"}}{  If the length of a vector 
+#' is an important attribute -- e.g., the amount of multivariate change per 
+#' one-unit
 #' change in a covariate -- then the absolute value of the difference in 
-#' vector lengths is a practical statistic to compare vector lengths.  
-#' Let d1 and
+#' vector lengths is a practical statistic to compare vector lengths, rather
+#' than the estimates the vectors make.  Let 
+#' d1 and
 #' d2 be the distances (length) of vectors.  Then |d1 - d2| is a statistic 
-#' that compares their lengths.}
+#' that compares their lengths.  For slope vectors, this is a comparison of rates.
+#' For comparison, if vectors are rates, "dist" finds the difference between estimates per unit
+#' change of, e.g., time, size, etc., which could be large, even for small rates of change, if 
+#' vectors point in dissimilar directions.  "DL" is a comparison of rates, irrespective of direction.}
 #' \item{\bold{Variance, "var"}}{  Vectors of residuals from a linear 
 #' model indicate can express the distances of observed values from 
 #' fitted values.  Mean
@@ -2603,6 +2610,126 @@ plot.ordinate <- function(x, axis1 = 1, axis2 = 2, flip = NULL,
   
 }
 
+#' Print/Summary Function for RRPP
+#'
+#' @param x Object from \code{\link{kcomp}}
+#' @param ... Other arguments passed onto print.kcomp
+#' @method print kcomp
+#' @export
+#' @author Michael Collyer
+#' @keywords utilities
+#' 
+print.kcomp <- function(x, ...){
+  cat("\nK-component analysis\n")
+  cat("Components = ", length(x$values))
+} 
+
+#' Print/Summary Function for RRPP
+#'
+#' @param object Object from \code{\link{kcomp}}
+#' @param ... Other arguments passed onto print.kcomp
+#' @method summary kcomp
+#' @export
+#' @author Michael Collyer
+#' @keywords utilities
+#' 
+summary.kcomp <- function(object, ...){
+  x <- object
+  print.kcomp(x, ...)
+  d <- x$values
+  p <- d/sum(d)
+  cp <- cumsum(d)/sum(d)
+  r <- as.data.frame(rbind(d, p, cp))
+  r <- r[, 1:min(length(d), NCOL(x$vectors), NCOL(r))]
+  r <- as.matrix(r)
+  colnames(r) <- colnames(x$vectors)[1:NCOL(r)]
+
+  rownames(r) <- c("Eigenvalues", "Proportion of Eigenvalue Sum",
+                        "Cumulative Proportion")
+  cat("\n\nImportance of Components:\n")
+  print(r)
+  out <- r
+  invisible(out)
+}
+
+
+#' Plot Function for RRPP
+#' 
+#' @param x An object of class \code{\link{kcomp}}
+#' @param axis1 A value indicating which component should be 
+#' displayed as the X-axis (default = K1)
+#' @param axis2 A value indicating which component should be 
+#' displayed as the Y-axis (default = K2)
+#' @param flip An argument that if not NULL can be used to flip 
+#' components in the plot.  
+#' The values need to match axis1 or axis2.  For example, if axis1 = 3 
+#' and axis2 = 4, flip = 1 will not
+#' change either axis; flip = 3 will flip only the horizontal axis; 
+#' flip = c(3, 4) will flip both axes.
+#' @param include.axes A logical argument for whether axes should be shown at x = 0 and y = 0.  
+#' This is different than the axes argument in the generic \code{\link{plot.default}} function, which
+#' controls the edges of the plot (providing a box effect or not).  Using include.axes = TRUE does not 
+#' allow aesthetic control of the axes.  If desired, it is better to use include.axes = FALSE and augment
+#' the plot object with \code{\link{abline}} (choosing h = 0 and v = 0 in separate applications).
+#' @param ... other arguments passed to plot (helpful to employ
+#' different colors or symbols for different groups).  See
+#' @return An object of class "plot.kcomp" is a list with components
+#'  that can be used in other plot functions, such as the type of plot, points, 
+#'  a group factor, and other information depending on the plot parameters used.
+#' @method plot kcomp
+#' @export
+#' @author Michael Collyer
+#' @keywords utilities
+#' @keywords visualization
+plot.kcomp <- function(x, axis1 = 1, axis2 = 2, flip = NULL, 
+                          include.axes = TRUE, ...) {
+  wrn <- options()$warn
+  options(warn = -1)
+  if(NCOL(x$scores) == 1) 
+    stop("Only one component.  No plotting capability with this function.\n", 
+         call. = FALSE)
+  v <- x$values/sum(x$values)
+  
+  kcdata <- x$scores[, c(axis1, axis2)]
+  if(!is.null(flip)) {
+    if(length(flip) > 2) flip <- flip[1:2]
+    flip <- flip[(flip %in% 1:ncol(kcdata))]
+    if(length(flip > 0)) kcdata[, flip] <- kcdata[, flip] * -1
+  }
+  
+  plot_args <- list(...)
+  plot_args$x = kcdata[,1]
+  plot_args$y = kcdata[,2]
+  
+  xlabel <- paste("KC ", axis1, ": ", 
+                  round(v[axis1] * 100, 2), "%", sep = "")
+  ylabel <- paste("KC ", axis2, ": ", 
+                  round(v[axis2] * 100, 2), "%", sep = "")
+  
+ 
+
+  if(is.null(plot_args$xlab)) plot_args$xlab <- xlabel
+  if(is.null(plot_args$ylab)) plot_args$ylab <- ylabel
+  if(is.null(plot_args$xlim)) plot_args$xlim <- 1.05*range(plot_args$x)
+  if(is.null(plot_args$ylim)) plot_args$ylim <- 1.05*range(plot_args$y)
+  if(is.null(plot_args$asp)) plot_args$asp <- 1
+  
+  do.call(plot.default, plot_args)
+  
+  if(include.axes){
+    abline(h = 0, lty=2, ...)
+    abline(v = 0, lty=2, ...)
+  }
+  
+  out <- list(points = kcdata,   
+              call = match.call())
+  
+  out$plot_args <- plot_args
+  class(out) <- "plot.kcomp"
+  options(warn = wrn)
+  invisible(out)
+  
+}
 
 # looCV
 
@@ -3517,4 +3644,142 @@ print.ICCstats <-function(x, ...){
 #' @keywords utilities
 summary.ICCstats <-function(object, ...){
   print.ICCstats(object, ...)
+}
+
+#' Print/Summary Function for RRPP
+#'
+#' @param x print/summary object (from \code{\link{pairwise.model.Z}})
+#' @param stats.table A logical value for whether to condense results into
+#' a single table of multiple statistics.
+#' @param ... other arguments passed to print/summary
+#' @method print pairwise.model.Z
+#' @export
+#' @author Dean Adams and Michael Collyer
+#' @keywords utilities
+print.pairwise.model.Z <-function(x, stats.table = TRUE, ...){
+  
+  tab1 <- data.frame(Terms = names(x$sample.z),
+                     Z = x$sample.z)
+  
+  nms <- paste("Mod", 1:length(x$sample.z), sep = "")
+  nam.com <- combn(length(nms), 2)
+  name.list <- list()
+  for(i in 1:NCOL(nam.com)) 
+    name.list[[i]]  <- paste(nms[nam.com[1,i]], nms[nam.com[2,i]], sep =":")
+  
+  rownames(tab1) <- nms
+  cat("\nModels:\n\n")
+  print(tab1)
+  
+  if(stats.table){
+
+    Dz <- as.dist(x$pairwise.z)
+    Dp <- as.dist(x$pairwise.P)
+    tab2 <- data.frame(Z = as.vector(Dz), P = as.vector(Dp))
+    colnames(tab2)[2] <- if(x$tails == 2) "Pr(>|Z|)" else "Pr(>Z)"
+    rownames(tab2) <- unlist(name.list)
+    
+    cat("\nPairwise Statistics:\n\n")
+    print(tab2)
+    cat("\n\n")
+    
+  } else {
+   
+    cat("\nPairwise Z:\n")
+    tb <- as.table(x$pairwise.z)
+    dimnames(tb) <- list(nms, nms)
+    print(tb)
+    cat("\nPairwise P:\n")
+    tb <- as.table(x$pairwise.P)
+    dimnames(tb) <- list(nms, nms)
+    print(tb)
+    cat("\n\n")
+  }
+}
+
+#' Print/Summary Function for RRPP
+#'
+#' @param object print/summary object (from \code{\link{pairwise.model.Z}})
+#' @param ... other arguments passed to print/summary
+#' @method summary pairwise.model.Z
+#' @export
+#' @author Dean Adams and Michael Collyer
+#' @keywords utilities
+summary.pairwise.model.Z <-function(object, ...){
+  print.pairwise.model.Z(object, ...)
+}
+
+## betaTest
+
+#' Print/Summary Function for RRPP
+#'
+#' @param x Object from \code{\link{betaTest}}
+#' @param confidence The desired confidence limit to print with a table of 
+#' summary statistics.  Because distances are directionless, confidence limits 
+#' are one-tailed.
+#' @param ... Other arguments passed onto betaTest
+#' @method print betaTest
+#' @export
+#' @author Michael Collyer
+#' @keywords utilities
+print.betaTest <- function(x, 
+                           confidence = 0.95,
+                           ...){
+  
+  cat("Test of coefficients:", rownames(x$obs.B.mat)[x$coef.no])
+  cat("\n equal to Beta = ")
+  cat(as.vector(x$Beta))
+  
+  include.md <- !is.null(x$obs.md)
+  perms <- if(include.md) NCOL(x$random.stats[[1]]) else 
+    length(x$random.stats[[1]])
+  
+  cat("\n Test performed with", perms, 
+      "permutations of residuals from specified null models.\n\n")
+  
+  Result <- lapply(x$random.stats, function(y){
+    d <- if(include.md) y[1,] else y
+    dUCL = quantile(d, confidence)
+    if(include.md){
+      md <- y[2,]
+      mdUCL = quantile(md, confidence)
+    }
+    
+    df = data.frame(d = d[1], UCLd = dUCL, 
+                    Zd = effect.size(d),
+                    Pd = pval(d))
+    if(include.md){
+      df$md = md[1] 
+      df$UCLmd = mdUCL 
+      df$Zmd = effect.size(md)
+      df$Pmd = pval(md)
+    }
+  
+    colnames(df)[2] <- paste("UCLd (", names(dUCL), ")", sep = "")
+    colnames(df)[4] <- "Pr(>d)"
+    if(include.md){
+      colnames(df)[6] <- paste("UCLmd (", names(mdUCL), ")", sep = "")
+      colnames(df)[8] <- "Pr(>md)"
+    }
+    
+    df
+  })
+  
+  names(Result) <- rownames(x$obs.B.mat)[x$coef.no]
+  
+  tab <- do.call(rbind, Result)
+  print(tab)
+  
+}
+
+#' Print/Summary Function for RRPP
+#'
+#' @param object Object from \code{\link{betaTest}}
+#' @param ... Other arguments passed onto betaTest
+#' @method summary betaTest
+#' @export
+#' @author Michael Collyer
+#' @keywords utilities
+summary.betaTest <- function(object, ...){
+  print.betaTest(object, ...)
 }
