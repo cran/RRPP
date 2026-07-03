@@ -19,7 +19,7 @@
 #' 
 #' @param ... Either an object of class \code{\link{model.comparison}}, 
 #' or several objects of class \code{\link{lm.rrpp}}.  If the former, arguments of
-#' type = 'Z' and verbose = TRUE are required.  If the latter, a model comparsion analysis
+#' type = 'Z' and verbose = TRUE are required.  If the latter, a model comparison analysis
 #' will first be performed with these arguments.
 #' @param nsamp An optional vector containing the sample sizes for each model fit
 #' @param two.tailed A logical value to indicate whether a two-tailed test (typical and default) should be performed.
@@ -77,7 +77,7 @@ pairwise.model.Z <- function(...,
   }
   rm(dots)
   if(is.null(MC$random.logL))
-    stop("\nThe model.comparsion analysis requires type = 'Z' and verbose = TRUE.\n",
+    stop("\nThe model.comparison analysis requires type = 'Z' and verbose = TRUE.\n",
          call. = FALSE)
   
   dists <- MC$random.logL
@@ -86,7 +86,7 @@ pairwise.model.Z <- function(...,
   if(is.null(list.names)) list.names <- seq(1:k)
   sdn <- function(x) sqrt(sum((x - mean(x))^2) / length(x))
   k.combn <- combn(k, 2, simplify = FALSE)
-  bct <- lapply(dists, function(x) box.cox(x)$transformed)
+  bct <- lapply(dists, function(x) powerTrans(x)$transformed)
   tails <- if(two.tailed) 2 else 1
   list.drs <- sapply(1:k, function(j) bct[[j]][1] - mean(bct[[j]])) 
   list.sds <- sapply(1:k, function(j) sdn(bct[[j]]))

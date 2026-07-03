@@ -322,23 +322,22 @@ pairwise <- function(fit, fit.null = NULL, groups, covariate = NULL,
   }
   
   Y <- fitf$LM$Y
+  X <- Models$reduced[[max(1, kk)]]$X
+  
   if(gls) {
     if(!is.null(fitf$LM$Cov) && is.null(fitf$LM$PCov))
        fitf$LM$Pcov <- Cov.proj(fitf$LM$Cov)
     Y <- if(!is.null(fitf$LM$Pcov)) fitf$LM$Pcov %*% Y else
       Y %*% sqrt(fitf$LM$weights)
+    X <- if(!is.null(fitf$LM$Pcov)) fitf$LM$Pcov %*% X else
+      X %*% sqrt(fitf$LM$weights)
   }
   
-  X <- Models$reduced[[max(1, kk)]]$X
-  if(!is.null(fit.null)) {
-    X <- fit.null$LM$X
-    if(fit.null$LM$gls) {
-      if(!is.null(fit.null$LM$Cov) && is.null(fit.null$LM$PCov))
-        fit.null$LM$Pcov <- Cov.proj(fit.null$LM$Cov)
-      X <- if(!is.null(fit.null$LM$Pcov)) fit.null$LM$Pcov %*% X else
-        X %*% sqrt(fit.null$LM$weights)
-    }
-  }
+  if(!is.null(fit.null)) X <- model.matrix(fit.null)
+  
+  X.s <- drop0(Matrix(X, sparse = TRUE), 1e-10)
+  if(length(X.s@x) < length(X)) X <- X.s
+  rm(X.s)
   
   if(k > 0) {
     lmf <- LM.fit(X, Y)
@@ -357,21 +356,14 @@ pairwise <- function(fit, fit.null = NULL, groups, covariate = NULL,
   rrpp.args$o <- o
   
   rrpp <- function(fitted, residuals, ind.i, offset = FALSE, o = NULL) {
-    if(offset) fitted + residuals[ind.i,] - o else
-      fitted + residuals[ind.i,]
+    if(offset) fitted + residuals[ind.i, , drop = FALSE] - o else
+      fitted + residuals[ind.i, , drop = FALSE]
   }
   
   rrpp.args$o <- if(!is.null(fitf$LM$offset)) fitf$LM$offset else NULL
   rrpp.args$offset <- if(!is.null(o)) TRUE else FALSE
   
-  if(gls) {
-    if(!is.null(fitf$LM$Cov) && is.null(fitf$LM$PCov)){
-      Pcov <- Cov.proj(fitf$LM$Cov)
-      Qf <- QRforX(Pcov %*% fitf$LM$X, reduce = FALSE)
-    } else {
-      Qf <- QRforX(fitf$LM$X * sqrt(fit$LM$weights), reduce = FALSE)
-    }
-  } else Qf <- QRforX(fitf$LM$X, reduce = FALSE)
+  Qf <- QRforX(model.matrix(fitf), reduce = FALSE)
 
   H <- tcrossprod(solve(Qf$R), Qf$Q)
   getCoef <- function(y) H %*% y
@@ -516,7 +508,7 @@ pairwise <- function(fit, fit.null = NULL, groups, covariate = NULL,
   disp.args <- list(res = as.matrix(res), ind.i = NULL, x = model.matrix(~groups + 0))
   if(gls) disp.args$x <- fitf$LM$Pcov %*% disp.args$x
   g.disp <- function(res, ind.i, x) {
-    r <- res[ind.i,]
+    r <- res[ind.i, , drop = FALSE]
     if(NCOL(r) > 1) d <- apply(r, 1, function(x) sum(x^2)) else
       d <- r^2
     coef(lm.fit(as.matrix(x), d))

@@ -17,7 +17,7 @@ and generate bootstrapped confidence intervals.}
 model fits.}
 }
 \description{
-Linear model calculations are made for many random versions of data. Using residual randomization in a permutation procedure, sums of squares are calculated over many permutations to generate empirical probability distributions for evaluating model effects. This packaged is described by Collyer & Adams (2018). Additionally, coefficients, statistics, fitted values, and residuals generated over many permutations can be used for various procedures including pairwise tests, prediction, classification, and model comparison. This package should provide most tools one could need for the analysis of high-dimensional data, especially in ecology and evolutionary biology, but certainly other fields, as well.
+Linear model calculations are made for many random versions of data. Using residual randomization in a permutation procedure, sums of squares are calculated over many permutations to generate empirical probability distributions for evaluating model effects. Additionally, coefficients, statistics, fitted values, and residuals generated over many permutations can be used for various procedures including pairwise tests, prediction, classification, and model comparison. This package should provide most tools one could need for the analysis of high-dimensional data, especially in ecology and evolutionary biology, but certainly other fields, as well.
 
 Functions in this package allow one to evaluate linear models 
 with residual randomization.
@@ -46,6 +46,7 @@ Useful links:
 
 Authors:
 \itemize{
+  \item Michael Collyer \email{mlcollyer@gmail.com} (\href{https://orcid.org/0000-0003-0238-2201}{ORCID})
   \item Dean Adams (\href{https://orcid.org/0000-0001-9172-7894}{ORCID})
 }
 

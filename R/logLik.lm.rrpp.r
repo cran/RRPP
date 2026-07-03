@@ -4,10 +4,15 @@
 #' Calculate the log-likelihood of a lm.rrpp fit
 #' 
 #' \code{logLik.lm.rrpp} returns the log-likelihood of
-#' an \code{lm.rrpp} object.  Ridge regularization will be performed for 
+#' an \code{lm.rrpp} object or an \code{lmm.rrpp} object.  
+#' Ridge regularization will be performed for 
 #' ill-conditioned or singular residual covariance matrices, but dimension
 #' reduction could be augmented via projection, using the arguments, tol
 #' and pc.no.  See \code{\link{ordinate}} for details.
+#' 
+#' Note that options are limited for \code{lmm.rrpp} objects.  It is currently
+#' not possible to use RRPP to find Z scores.
+#' 
 #'
 #' @param object Object from \code{\link{lm.rrpp}}
 #' @param tol A value indicating the magnitude below which 
@@ -28,6 +33,33 @@
 #' @keywords utilities
 
 logLik.lm.rrpp <- function(object, tol = NULL, 
+                            pc.no = NULL, Z = TRUE,
+                            verbose = FALSE,
+                            gls.null = FALSE, ...){
+  
+  ll <- if(isTRUE(object$LM$LMM))
+    .logLik.lmm.rrpp(object, tol = tol,
+                     pc.no = pc.no, Z = Z,
+                     verbose = verbose,
+                     gls.null = gls.null, ...) else
+            .logLik.lm.rrpp(object, tol = tol,
+                            pc.no = pc.no, Z = Z,
+                            verbose = verbose,
+                            gls.null = gls.null, ...)
+  Z <- ll$Z
+  if(is.list(ll)) val <- ll[[1]] else val <- as.numeric(ll)
+  k <- attr(ll, "k") 
+  p <- attr(ll, "p")
+  attr(val, "df") <- k * p
+  attr(val, "nall") <- attr(ll, "nall") 
+  attr(val, "nobs") <- attr(ll, "nobs") 
+  attr(val, "p") <- attr(ll, "p") 
+  attr(val, "Z") <- Z
+  class(val) <- "logLik"
+  val
+}
+
+.logLik.lm.rrpp <- function(object, tol = NULL, 
                            pc.no = NULL, Z = TRUE,
                            verbose = FALSE,
                            gls.null = FALSE, ...){
@@ -43,6 +75,7 @@ logLik.lm.rrpp <- function(object, tol = NULL,
   Y <- as.matrix(object$LM$Y)
   R <- if(gls) object$LM$gls.residuals else object$LM$residuals
   PCA <- ordinate(R, tol = tol, rank. = min(c(pc.no, p)))
+  p <- ncol(PCA$x)
   rnk <- length(PCA$d)
   w <- object$LM$weights
   Cov <- object$LM$Cov  
@@ -64,7 +97,8 @@ logLik.lm.rrpp <- function(object, tol = NULL,
   
   TY <- if(gls.null) PY else Y
   
-  ll <- logL(object) 
+  ll <- logL(object, tol = tol, pc.no = pc.no,
+             C = Cov, w = w) 
   
   if(Z) {
     
@@ -74,7 +108,7 @@ logLik.lm.rrpp <- function(object, tol = NULL,
       excl <- w <= 0
       logdetC <- sum(log(w[!excl]))
     } else {
-      logdetC <- if(gls) determinant(Cov, logarithm = TRUE)$modulus else 0
+      logdetC <- if(gls) log(det(Cov)) else 0
     }
     
     ll.list <- sapply(1:perms, function(j){
@@ -84,12 +118,8 @@ logLik.lm.rrpp <- function(object, tol = NULL,
         r <- ty - fastFit(U, ty, n, rnk)
       } else r <- y - fastFit(U, y, n, rnk)
       r <- as.matrix(r)
-      if(NCOL(r) > rnk) r <- ordinate(r, rank. = rnk)$x
-      Sig <- as.matrix(crossprod(r) / n)
-      if(kappa(Sig) > 1e10) Sig <- RiReg(Sig, r)
-      logdetSig <- determinant(Sig, logarithm = TRUE)$modulus
-      -0.5 * (n * rnk * log(2 * pi) + rnk * logdetC +
-                n * logdetSig + n * rnk) 
+      logL(object, tol = tol, pc.no = pc.no,
+           logdetC = logdetC, R = r, rnk = rnk)$logL
     })
      
     z <- effect.size(ll.list)
@@ -98,6 +128,167 @@ logLik.lm.rrpp <- function(object, tol = NULL,
                            random.logL = ll.list)
   }
   
+  attr(ll, "k") <- ncol(U)
+  attr(ll, "p") <- p
+  attr(ll, "nall") <- n
+  attr(ll, "nobs") <- n
+  
   return(ll)
     
 }
+
+
+.logLik.lmm.rrpp <- function(object, tol = NULL, 
+                             pc.no = NULL, Z = TRUE,
+                             verbose = FALSE,
+                             gls.null = FALSE, ...){
+  
+  if(is.null(tol)) tol = 0
+  
+  PermInfo <- getPermInfo(object, attribute = "all")
+  ind <- PermInfo$perm.schedule
+  gls <- object$LM$gls
+  n <- object$LM$n
+  p <- object$LM$p.prime
+  X <- QRforX(object$LM$X)$X
+  Y <- as.matrix(object$LM$Y)
+  R <- if(gls) object$LM$gls.residuals else object$LM$residuals
+  PCA <- ordinate(R, tol = tol, rank. = min(c(pc.no, p)))
+  rnk <- length(PCA$d)
+  w <- object$LM$weights
+  Cov <- object$LM$Cov  
+  if(!is.null(object$LM$Cov) && is.null(object$LM$Pcov)) 
+    object$LM$Pcov <- Cov.proj(object$LM$Cov)
+  Pcov <- NULL
+  if(!is.null((object$LM$Pcov)))
+    Pcov <- object$LM$Pcov
+  
+  PY <- if(gls) {
+    if(!is.null(Pcov)) Pcov %*% Y else Y * sqrt(w)
+  } else NULL
+  PX <- if(gls) {
+    if(!is.null(Pcov)) Pcov %*% X else X * sqrt(w)
+  } else NULL
+  R <- if(gls) {
+    if(!is.null(Pcov)) Pcov %*% R else R * sqrt(w)
+  } else R
+  
+  RtR_det <- try(det(crossprod(R)), silent = TRUE)
+  if(!inherits(RtR_det, "try-error")) 
+    object$devcomp$RtR_det <- RtR_det else
+      stop("The residuals appear to be singular using the current attributes.\n",
+           call. = FALSE)
+  # update U
+  # get hresid
+  XZ <- if(gls) cbind(PX, object$LM$Z %*% object$LM$Lambda) else
+    cbind(X, object$LM$Z %*% object$LM$Lambda)
+  Hb <- if(gls) getLMM_Hb(PX, object$LM$Z %*% object$LM$Lambda) else
+    getLMM_Hb(X, object$LM$Z %*% object$LM$Lambda)
+  H <- XZ %*% Hb  - diag(n)
+  
+  TY <- if(gls.null) PY else Y
+    
+  k <- NCOL(X)
+  
+  est <- object$LM$estimation
+  devcomp <- object$devcomp
+  r <- devcomp$RtR_det 
+  if(!is.na(devcomp$UtU_det)) r <- r + devcomp$UtU_det
+  lres <- log(2 * pi * r)
+  n <- object$LM$n
+  p <- object$LM$p.prime
+  np <- n * p
+  if(est == "REML") npk <- np - 
+    length(object$LM$coef.fixed) * object$LM$p.prime else 
+      npk <- np
+  
+  ll <- -0.5 * p * ((devcomp$ldLZ + devcomp$ldLX - devcomp$ldO) +
+                      npk * (1 + log((2 * pi * r) / npk)))
+  if(Z) {
+    
+    perms <- length(ind)
+    
+    ll.list <- sapply(1:perms, function(j){
+      y <- TY[ind[[j]], ]
+      if(gls && !gls.null) {
+        ty <- Pcov %*% y
+        r <- H %*% ty
+      } else r <- H %*% y
+      r <- as.matrix(r)
+      if(NCOL(r) > rnk) r <- ordinate(r, rank. = rnk)$x
+      r <- det(crossprod(r))
+      if(!is.na(devcomp$UtU_det)) r <- r + devcomp$UtU_det
+      -0.5 * p * ((devcomp$ldLZ + devcomp$ldLX - devcomp$ldO) +
+                    npk * (1 + log((2 * pi * r) / npk)))
+    })
+    
+    z <- effect.size(ll.list)
+    ll <- c(ll, Z = z)
+    if(verbose) ll <- list(ll = ll, Z = z, 
+                           random.logL = ll.list)
+  }
+  
+  
+  attr(ll, "k") <- ncol(X) + 
+    length(unique(as.vector(object$LM$Lambda))) -1
+  attr(ll, "p") <- p
+  attr(ll, "nall") <- n
+  attr(ll, "nobs") <- n 
+  
+  ll
+}
+
+
+
+
+logL <- function(fit, tol = NULL, pc.no = NULL,
+                 logdetC = NULL, R = NULL, rnk = NULL,
+                 useRiReg = TRUE, 
+                 C = NULL, w = NULL
+                 ){
+  if(is.null(tol)) tol = 0
+  gls <- fit$LM$gls
+  n <- fit$LM$n
+  p <- fit$LM$p.prime
+  
+  Pcov <- try(getModelCov(fit, "Pcov"),
+              silent = TRUE)
+  if(inherits(Pcov, "try-error")) Pcov <- NULL
+  
+  if(is.null(R)){
+    R <- if(gls) fit$LM$gls.residuals else 
+      fit$LM$residuals
+    R <- if(gls) {
+      if(!is.null(Pcov)) Pcov %*% R else R * sqrt(w)
+    } else R
+  }
+  
+  if(gls && is.null(logdetC)) {
+    if(!is.null(w)) {
+      excl <- w <= 0
+      logdetC <- sum(log(w[!excl]))
+    } else {
+      logdetC <- log(det(C))
+    }
+  } else logdetC <- 0
+  
+  R <- as.matrix(R)
+  if(is.null(rnk)){
+    PCA <- ordinate(R, tol = tol, rank. = min(c(pc.no, p)))
+    rnk <- length(PCA$d)
+  }
+  
+  if(NCOL(R) > rnk) R <- ordinate(R, tol = tol, 
+                                  rank. = rnk)$x
+  Sig <- as.matrix(crossprod(R) / n)
+  if(kappa(Sig) > 1e10 && useRiReg) Sig <- RiReg(Sig, R)
+  
+  logdetSig <- log(det(Sig))
+  
+  ll <- -0.5 * (n * rnk * log(2 * pi) + rnk * logdetC +
+                  n * logdetSig + n * rnk) 
+  
+  list(logL = ll, rank = rnk)
+  
+}
+

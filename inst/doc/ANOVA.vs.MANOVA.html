@@ -12,7 +12,7 @@
 
 <meta name="author" content="Michael L. Collyer" />
 
-<meta name="date" content="2025-02-18" />
+<meta name="date" content="2026-07-02" />
 
 <title>ANOVA versus MANOVA in RRPP</title>
 
@@ -50,8 +50,9 @@ overflow: visible;
 }
 </style>
 <style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
 pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
@@ -62,7 +63,7 @@ div.sourceCode { overflow: auto; }
 }
 @media print {
 pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
 { counter-reset: source-line 0; }
@@ -340,7 +341,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 <h1 class="title toc-ignore">ANOVA versus MANOVA in RRPP</h1>
 <h4 class="author">Michael L. Collyer</h4>
-<h4 class="date">2025-02-18</h4>
+<h4 class="date">2026-07-02</h4>
 
 
 
@@ -454,7 +455,7 @@ an ANOVA table, via the anova.lm.rrpp S3 generic; i.e.,</p>
 ## Effect sizes (Z) based on F distributions
 ## 
 ##           Df       SS        MS     Rsq      F      Z Pr(&gt;F)    
-## Sex        1 0.015780 0.0157802 0.28012 28.209 4.7773  0.001 ***
+## Sex        1 0.015780 0.0157802 0.28012 28.209 4.7774  0.001 ***
 ## Pop        1 0.009129 0.0091294 0.16206 16.320 4.7097  0.001 ***
 ## Sex:Pop    1 0.003453 0.0034532 0.06130  6.173 3.7015  0.001 ***
 ## Residuals 50 0.027970 0.0005594 0.49651                         
@@ -462,8 +463,9 @@ an ANOVA table, via the anova.lm.rrpp S3 generic; i.e.,</p>
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Call: lm.rrpp(f1 = coords ~ Sex * Pop, SS.type = &quot;I&quot;, data = Pupfish,  
-##     print.progress = FALSE)</code></pre>
+## Call: lm.rrpp(f1 = coords ~ Sex * Pop, 
+## SS.type = &quot;I&quot;, data = Pupfish, 
+## print.progress = FALSE)</code></pre>
 <p>To switch to MANOVA statistics, the linear model fit must be updated
 to include MANOVA statistics, in addition to the ANOVA statistics
 already generated. The MANOVA statistics take more time to calculate,
@@ -496,18 +498,15 @@ table.</p>
 ## Number of observations: 54
 ## Number of dependent variables: 112
 ## Data space dimensions: 53
-## Residual covariance matrix rank: 111
-##    Data reduced to 53 PCs, as required or prescribed.
-##    100 % of overall variation explained by these PCs.
-##    See $MANOVA$PCA from manova.lm.rrpp object for more information.
+## Residual covariance matrix rank: 50
 ## Sums of Squares and Cross-products: Type I
 ## Number of permutations: 1000 
 ## 
 ##            Df Rand      Roy      Z          Pr(&gt;Roy)
-## Sex         1 Residuals 17.73326  6.8151620 0.001   
-## Pop         1 Residuals 50.34889  1.5093978 0.070   
-## Sex:Pop     1 Residuals 12.71263 -0.5293145 0.706   
-## Full.Model  3 Residuals 54.35676  8.0972310 0.001   
+## Sex         1 Residuals 17.73326  6.8151865 0.001   
+## Pop         1 Residuals 50.34889  1.5093966 0.070   
+## Sex:Pop     1 Residuals 12.71263 -0.5293166 0.706   
+## Full.Model  3 Residuals 54.35676  8.0972688 0.001   
 ## Residuals  50</code></pre>
 <div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="fu">summary</span>(fitm, <span class="at">test =</span> <span class="st">&quot;Pillai&quot;</span>)</span></code></pre></div>
 <pre><code>## 
@@ -516,18 +515,15 @@ table.</p>
 ## Number of observations: 54
 ## Number of dependent variables: 112
 ## Data space dimensions: 53
-## Residual covariance matrix rank: 111
-##    Data reduced to 53 PCs, as required or prescribed.
-##    100 % of overall variation explained by these PCs.
-##    See $MANOVA$PCA from manova.lm.rrpp object for more information.
+## Residual covariance matrix rank: 50
 ## Sums of Squares and Cross-products: Type I
 ## Number of permutations: 1000 
 ## 
 ##            Df Rand      Pillai    Z          Pr(&gt;Pillai)
-## Sex         1 Residuals 0.9466190  4.9765825 0.001      
-## Pop         1 Residuals 0.9805254  1.3801816 0.070      
-## Sex:Pop     1 Residuals 0.9270745 -0.3379822 0.706      
-## Full.Model  3 Residuals 2.8339784  9.6895441 0.001      
+## Sex         1 Residuals 0.9466190  4.5562411 0.001      
+## Pop         1 Residuals 0.9805254  1.3085765 0.070      
+## Sex:Pop     1 Residuals 0.9270745 -0.2005308 0.706      
+## Full.Model  3 Residuals 2.8339784  8.3138451 0.001      
 ## Residuals  50</code></pre>
 <p>It should be apparent that although the ANOVA and MANOVA results have
 some similarities, the effect sizes (<span class="math inline">\(Z\)</span>-scores) and <span class="math inline">\(P\)</span>-values can vary. Comparatively, the
@@ -559,7 +555,7 @@ dimensions is not recommended as a typical solution):</p>
 ## Effect sizes (Z) based on F distributions
 ## 
 ##           Df       SS        MS     Rsq      F      Z Pr(&gt;F)    
-## Sex        1 0.015780 0.0157802 0.28012 28.209 4.7773  0.001 ***
+## Sex        1 0.015780 0.0157802 0.28012 28.209 4.7774  0.001 ***
 ## Pop        1 0.009129 0.0091294 0.16206 16.320 4.7097  0.001 ***
 ## Sex:Pop    1 0.003453 0.0034532 0.06130  6.173 3.7015  0.001 ***
 ## Residuals 50 0.027970 0.0005594 0.49651                         
@@ -567,8 +563,9 @@ dimensions is not recommended as a typical solution):</p>
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Call: lm.rrpp(f1 = coords ~ Sex * Pop, SS.type = &quot;I&quot;, data = Pupfish,  
-##     print.progress = FALSE)</code></pre>
+## Call: lm.rrpp(f1 = coords ~ Sex * Pop, 
+## SS.type = &quot;I&quot;, data = Pupfish, 
+## print.progress = FALSE)</code></pre>
 <div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a><span class="fu">summary</span>(fitm)</span></code></pre></div>
 <pre><code>## 
 ## Linear Model fit with lm.rrpp
@@ -576,18 +573,15 @@ dimensions is not recommended as a typical solution):</p>
 ## Number of observations: 54
 ## Number of dependent variables: 112
 ## Data space dimensions: 53
-## Residual covariance matrix rank: 111
-##    Data reduced to 53 PCs, as required or prescribed.
-##    100 % of overall variation explained by these PCs.
-##    See $MANOVA$PCA from manova.lm.rrpp object for more information.
+## Residual covariance matrix rank: 50
 ## Sums of Squares and Cross-products: Type I
 ## Number of permutations: 1000 
 ## 
 ##            Df Rand      Roy      Z          Pr(&gt;Roy)
-## Sex         1 Residuals 17.73326  6.8151620 0.001   
-## Pop         1 Residuals 50.34889  1.5093978 0.070   
-## Sex:Pop     1 Residuals 12.71263 -0.5293145 0.706   
-## Full.Model  3 Residuals 54.35676  8.0972310 0.001   
+## Sex         1 Residuals 17.73326  6.8151865 0.001   
+## Pop         1 Residuals 50.34889  1.5093966 0.070   
+## Sex:Pop     1 Residuals 12.71263 -0.5293166 0.706   
+## Full.Model  3 Residuals 54.35676  8.0972688 0.001   
 ## Residuals  50</code></pre>
 <p>Alternatively, one could specify an exact number of PCs to use in
 analysis.</p>
@@ -602,7 +596,7 @@ analysis.</p>
 ## Effect sizes (Z) based on F distributions
 ## 
 ##           Df       SS        MS     Rsq      F      Z Pr(&gt;F)    
-## Sex        1 0.015780 0.0157802 0.28012 28.209 4.7773  0.001 ***
+## Sex        1 0.015780 0.0157802 0.28012 28.209 4.7774  0.001 ***
 ## Pop        1 0.009129 0.0091294 0.16206 16.320 4.7097  0.001 ***
 ## Sex:Pop    1 0.003453 0.0034532 0.06130  6.173 3.7015  0.001 ***
 ## Residuals 50 0.027970 0.0005594 0.49651                         
@@ -610,8 +604,9 @@ analysis.</p>
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Call: lm.rrpp(f1 = coords ~ Sex * Pop, SS.type = &quot;I&quot;, data = Pupfish,  
-##     print.progress = FALSE)</code></pre>
+## Call: lm.rrpp(f1 = coords ~ Sex * Pop, 
+## SS.type = &quot;I&quot;, data = Pupfish, 
+## print.progress = FALSE)</code></pre>
 <div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a><span class="fu">summary</span>(fitm)</span></code></pre></div>
 <pre><code>## 
 ## Linear Model fit with lm.rrpp
@@ -619,7 +614,7 @@ analysis.</p>
 ## Number of observations: 54
 ## Number of dependent variables: 112
 ## Data space dimensions: 53
-## Residual covariance matrix rank: 111
+## Residual covariance matrix rank: 50
 ##    Data reduced to 10 PCs, as required or prescribed.
 ##    93.3 % of overall variation explained by these PCs.
 ##    See $MANOVA$PCA from manova.lm.rrpp object for more information.
@@ -627,10 +622,10 @@ analysis.</p>
 ## Number of permutations: 1000 
 ## 
 ##            Df Rand      Roy       Z         Pr(&gt;Roy)
-## Sex         1 Residuals  7.357775  8.928089 0.001   
-## Pop         1 Residuals 18.318603 11.680405 0.001   
-## Sex:Pop     1 Residuals  5.132268  8.500135 0.001   
-## Full.Model  3 Residuals 20.461447 10.525117 0.001   
+## Sex         1 Residuals  7.357775  8.927917 0.001   
+## Pop         1 Residuals 18.318603 11.680107 0.001   
+## Sex:Pop     1 Residuals  5.132268  8.499807 0.001   
+## Full.Model  3 Residuals 20.461447 10.525031 0.001   
 ## Residuals  50</code></pre>
 </div>
 <div id="dimensionality-warning-for-manova-on-high-dimensional-data" class="section level2">

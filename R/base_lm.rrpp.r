@@ -20,6 +20,10 @@
   # 2 = Cov matches subjects in name and length
   # 3 = Cov matches subjects in name, but needs expansion
   
+  tTerms <- if(inherits(f1, "lm")) 
+    terms.formula(f1$terms, keep.order = int.first) else
+      terms.formula(f1, keep.order = int.first)
+  
   cov.type <- 0
   if(!is.null(Cov) && is.null(subjects))
     cov.type <- 1
@@ -27,12 +31,12 @@
     cov.type <- 2
   
   STerm <- sub.lev <- NULL
-  subTest <- useSubjects <- !is.null(subjects)
+  useSubjects <- !is.null(subjects)
   
   L <- c(as.list(environment()), list(...))
   names(L)[which(names(L) == "f1")] <- "formula"
   
-  if(int.first) ko = TRUE else ko = FALSE
+  L$int.first <- int.first
   SS.type <- L$SS.type
   full.resid <- L$full.resid
   
@@ -89,16 +93,44 @@
     if("weights" %in% names(exchange.args))
       names(exchange.args)[which(names(exchange.args) == "weights")] <- "w"
     Terms <- f1$terms
+  } else {
+    f1 <- formula(tTerms,
+                  keep.order = int.first)
   }
   
   if(inherits(f1, "formula")) {
+    L$formula <- f1
+    L$keep.order <- int.first
     exchange.args <- lm.args.from.formula(L)
     if(!is.null(exchange.args$D)) D <- exchange.args$D
     exchange.args <- exchange.args[c("Terms", "Y", "model")]
     exchange.args$tol <- 1e-7
     exchange.args$SS.type <- SS.type
-    Terms <- exchange.args$Terms
+    Terms <- exchange.args$Terms 
     Y <- as.matrix(exchange.args$Y)
+  }
+  
+  if(!identical(attr(tTerms, "term.labels"),
+                attr(Terms, "term.labels"))) {
+    trms <- attr(terms(f1, keep.order = int.first),
+                 "term.labels")
+    if(length(trms) > 0)
+    nform <- reformulate(termlabels = trms,
+                         response = "Y") else nform <- update(f1, Y ~ .)
+    Terms <- try(terms(nform, data = exchange.args$data,
+                               keep.order = int.first),
+                 silent = TRUE)
+    
+    model <- try(model.frame(Terms, data = exchange.args$data),
+                 silent = TRUE)
+    
+    if(inherits(model, "try-error") || inherits(Terms, "try-error"))
+      stop("Variables or data might be missing from either the data frame or 
+           global environment, or a linear model fit just does not work...\n", 
+           call. = FALSE)
+    
+    exchange.args$Terms <- Terms
+    exchange.args$model <- model
   }
   
   id <- get.names(Y)
@@ -126,7 +158,7 @@
   ols <- TRUE
   
   if(!is.null(w)) {
-    if(NROW(w) != n)
+    if(length(w) != n)
       stop("The number of weights does not match the number of observations.  This could be because of missing data.\n",
            call. = FALSE)
     gls <- TRUE
@@ -158,7 +190,28 @@
     }
   }
   
+  ### Subject options
+  
+  # 0 = No subjects
+  # 1 = Subjects for block but not terms
+  # 2 = Subjects as blocks and terms
+  
+  sub.type <- 0
+  useSubjects <- FALSE
+  
   if(!is.null(subjects)) {
+    sub.type <- 1
+    useSubjects <- TRUE
+  }
+  
+  subTest <- FALSE
+  STerm <- which(term.labels == sub.var.name)
+  if(!(length(STerm) == 0)) {
+    sub.type <- 3
+    subTest <- TRUE
+  } else STerm <- NULL
+  
+  if(sub.type > 0) {
     subjects <- as.factor(subjects)
     sub.lev <- levels(subjects)
   } 
@@ -173,12 +226,24 @@
                    "\nlinear model fit by reconstructing your data frame.\n\n", sep = "")
       stop(msg, call. = FALSE)
     }
-    STerm <- which(term.labels == sub.var.name)
-    subTest <- !(length(STerm) == 0)
+
+    
     if(!sub.var.name %in% names(data))
       stop("\nVariable for subjects is not found in the RRPP data frame.\n",
            call. = FALSE)
-    if(!subTest) STerm <- NULL
+  }
+  
+  perms <- iter + 1
+  ind_s <- NULL
+  ind <- perm.index(n, iter = iter, block = block, seed = seed)
+  
+  if(sub.type == 1){
+    ind <- perm.index(n, iter = iter, block = subjects, seed = seed)
+  }
+  
+  if(sub.type == 2){
+    ind <- perm.index(n, iter = iter, block = subjects, seed = seed)
+    ind_s <- perm.index(n, iter = iter, block = block, seed = seed)
   }
   
   Pcov <- CovEx <- NULL
@@ -248,8 +313,14 @@
     ols <- FALSE
   } else {
     Pcov <- NULL
-    ols <- TRUE
-    gls <- FALSE
+    if(is.null(w)) {
+      ols <- TRUE
+      gls <- FALSE
+    } else {
+      ols <- FALSE
+      gls <- TRUE
+    }
+    
   }
 
   X.args <- exchange.args[c("Terms", "Y", "SS.type", "tol", "model")]
@@ -271,14 +342,6 @@
   })
   
   names(Qs) <- c("reduced", "full")
-  
-  ind <- perm.index(n, iter = iter, block = block, seed = seed)
-  perms <- iter + 1
-  
-  if(subTest) {
-    ind <- perm.index(n, iter = iter, block = subjects, seed = seed)
-    ind_s <- perm.index(n, iter = iter, block = block, seed = seed)
-  } else ind_s <- NULL
 
   checkers.args <- list(Y = Y, Qs = Qs, Xs = Xs,
                         turbo = turbo, Terms = Terms, Pcov = Pcov, w = w)
@@ -291,8 +354,12 @@
   PCA <- p > (n - 1) 
   
   if(PCA) {
-    TYp <- ordinate(TY, tol = 1e-10)$x
-    p.prime <- ncol(TYp)
+    Yp <- ordinate(Y, tol = 1e-7)$x
+    p.prime <- ncol(Yp)
+    TYp <- if(!is.null(Pcov)) 
+      Pcov %*% Yp else if(!is.null(w)) 
+        Yp * sqrt(w) else Yp
+    Yp <- NULL
   } else {
     TYp <- TY
     p.prime <- p
@@ -310,7 +377,7 @@
         out <- list(fitted = fitted, residuals = residuals)
       })
       
-      if(subTest) {
+      if(sub.type == 2) {
         FR[[STerm]]$fitted <- as.matrix(fastFit(Uf[[STerm]], TY, n , p))
         FR[[STerm]]$residuals <- as.matrix(TY - FR[[STerm]]$fitted)
       }
@@ -325,7 +392,7 @@
         out <- list(fitted = fitted, residuals = residuals)
       })
       
-      if(subTest) {
+      if(sub.type == 2) {
         FR[[STerm]]$fitted <- as.matrix(fastFit(Ur[[STerm]], TY, n , p))
         FR[[STerm]]$residuals <- as.matrix(TY - FR[[STerm]]$fitted)
       }
@@ -373,7 +440,7 @@
           list(fitted = fitted, residuals = residuals)
         })
         
-        if(subTest) {
+        if(sub.type == 2) {
           FR[[STerm]]$fitted <- as.matrix(fastFit(Uf[[STerm]], TYp, n , p))
           FR[[STerm]]$residuals <- as.matrix(TYp - FR[[STerm]]$fitted)
         }
@@ -387,7 +454,7 @@
           list(fitted = fitted, residuals = residuals)
         })
         
-        if(subTest) {
+        if(sub.type == 2) {
           FR[[STerm]]$fitted <- as.matrix(fastFit(Ur[[STerm]], TYp, n , p))
           FR[[STerm]]$residuals <- as.matrix(TYp - FR[[STerm]]$fitted)
         }
@@ -425,7 +492,10 @@
   obs.fit <- lm.rrpp.fit(X, Y, Pcov = Pcov, w = w, offset = o, 
                          tol = exchange.args$tol)
   
-  QR <- obs.fit$qr
+  TX <- if(!is.null(Pcov)) Pcov %*% X else
+    if(!is.null(w)) X / sqrt(w) else X
+  QR <- QRforX(TX)
+  
   Hb <- as.matrix(tcrossprod(fast.solve(QR$R), QR$Q))
   if(!identical(colnames(X), colnames(QR$R)))
     Hb <- Hb[colnames(X),]
@@ -434,7 +504,7 @@
     rownames(coefficients) <- rownames(Hb)
   R <- U <- QR <- NULL
   
-  LM <- list(form = formula(Terms), 
+  LM <- list(form = formula(Terms, keep.order = int.first), 
              coefficients = coefficients,
              ols = ols,
              gls = gls,
