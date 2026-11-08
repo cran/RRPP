@@ -12,7 +12,7 @@
 
 <meta name="author" content="Michael L. Collyer" />
 
-<meta name="date" content="2026-07-02" />
+<meta name="date" content="2026-11-07" />
 
 <title>ANOVA versus MANOVA in RRPP</title>
 
@@ -341,7 +341,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 <h1 class="title toc-ignore">ANOVA versus MANOVA in RRPP</h1>
 <h4 class="author">Michael L. Collyer</h4>
-<h4 class="date">2026-07-02</h4>
+<h4 class="date">2026-11-07</h4>
 
 
 
@@ -504,9 +504,9 @@ table.</p>
 ## 
 ##            Df Rand      Roy      Z          Pr(&gt;Roy)
 ## Sex         1 Residuals 17.73326  6.8151865 0.001   
-## Pop         1 Residuals 50.34889  1.5093966 0.070   
-## Sex:Pop     1 Residuals 12.71263 -0.5293166 0.706   
-## Full.Model  3 Residuals 54.35676  8.0972688 0.001   
+## Pop         1 Residuals 50.34889  1.5543790 0.070   
+## Sex:Pop     1 Residuals 12.71263 -0.5228087 0.706   
+## Full.Model  3 Residuals 54.35676 14.8323230 0.001   
 ## Residuals  50</code></pre>
 <div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="fu">summary</span>(fitm, <span class="at">test =</span> <span class="st">&quot;Pillai&quot;</span>)</span></code></pre></div>
 <pre><code>## 
@@ -523,7 +523,7 @@ table.</p>
 ## Sex         1 Residuals 0.9466190  4.5562411 0.001      
 ## Pop         1 Residuals 0.9805254  1.3085765 0.070      
 ## Sex:Pop     1 Residuals 0.9270745 -0.2005308 0.706      
-## Full.Model  3 Residuals 2.8339784  8.3138451 0.001      
+## Full.Model  3 Residuals 2.8339784  8.1104263 0.001      
 ## Residuals  50</code></pre>
 <p>It should be apparent that although the ANOVA and MANOVA results have
 some similarities, the effect sizes (<span class="math inline">\(Z\)</span>-scores) and <span class="math inline">\(P\)</span>-values can vary. Comparatively, the
@@ -579,9 +579,9 @@ dimensions is not recommended as a typical solution):</p>
 ## 
 ##            Df Rand      Roy      Z          Pr(&gt;Roy)
 ## Sex         1 Residuals 17.73326  6.8151865 0.001   
-## Pop         1 Residuals 50.34889  1.5093966 0.070   
-## Sex:Pop     1 Residuals 12.71263 -0.5293166 0.706   
-## Full.Model  3 Residuals 54.35676  8.0972688 0.001   
+## Pop         1 Residuals 50.34889  1.5543790 0.070   
+## Sex:Pop     1 Residuals 12.71263 -0.5228087 0.706   
+## Full.Model  3 Residuals 54.35676 14.8323230 0.001   
 ## Residuals  50</code></pre>
 <p>Alternatively, one could specify an exact number of PCs to use in
 analysis.</p>

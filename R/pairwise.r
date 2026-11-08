@@ -121,6 +121,24 @@
 #'  performed a pairwise test with "stdist" is a good association; if MANOVA is performed,
 #'  a pairwise test with "mdist" is a good association.
 #' }
+#' 
+#' 
+#'  \subsection{Notes for RRPP 2.2.0 and subsequent versions}{ 
+#'  It is possible to adjust the P-values with \code{\link{p.adjust}}
+#'  when using \code{\link{summary.pairwise}}.  However, one should
+#'  use extreme caution because probabilities calculated with permutations
+#'  are left-censored by the number of permutations.  For example, 
+#'  the smallest P-value using 1,000 permutations is 0.001, even if the true
+#'  P-value is much smaller.  Using P-value adjustments is fraught with inferential
+#'  errors unless one uses a very large number of permutations.
+#'  
+#'  Alternatively, one can adjust the confidence level in \code{\link{summary.pairwise}},
+#'  which is much safer.  For example, one might use a 99.5% confidence limit
+#'  (confidence = 0.995), thus finding confidence limits for statistics for which
+#'  only 0.5 percent of values are larger.  This is a safe option, regardless of the
+#'  number of permutations.
+#'  
+#' }
 #'  
 #' @param fit A linear model fit using \code{\link{lm.rrpp}}.
 #' @param fit.null An alternative linear model fit to use as a null 
@@ -228,6 +246,17 @@
 #' # distances among means
 #' summary(PW1, confidence = 0.95, test.type = "dist") 
 #' summary(PW1, confidence = 0.95, test.type = "dist", stat.table = FALSE)
+#' 
+#' # using P-value adjustment
+#' summary(PW1, confidence = 0.95, test.type = "dist",
+#' p.adjust.method = "bonferroni") 
+#' summary(PW1, confidence = 0.95, 
+#' test.type = "dist", stat.table = FALSE,
+#' p.adjust.method = "bonferroni")
+#' 
+#' # using 99% confidence
+#' summary(PW1, confidence = 0.99, test.type = "dist") 
+#' summary(PW1, confidence = 0.99, test.type = "dist", stat.table = FALSE)
 #' 
 #' # standardized distances among means
 #' summary(PW1, confidence = 0.95, test.type = "stdist") 
@@ -363,7 +392,13 @@ pairwise <- function(fit, fit.null = NULL, groups, covariate = NULL,
   rrpp.args$o <- if(!is.null(fitf$LM$offset)) fitf$LM$offset else NULL
   rrpp.args$offset <- if(!is.null(o)) TRUE else FALSE
   
-  Qf <- QRforX(model.matrix(fitf), reduce = FALSE)
+  Xf <- model.matrix(fitf)
+  if(gls){
+    Xf <- if(!is.null(fitf$LM$Pcov)) fitf$LM$Pcov %*% Xf else
+      Xf %*% sqrt(fitf$LM$weights) 
+  }
+  
+  Qf <- QRforX(Xf, reduce = FALSE)
 
   H <- tcrossprod(solve(Qf$R), Qf$Q)
   getCoef <- function(y) H %*% y
@@ -509,7 +544,7 @@ pairwise <- function(fit, fit.null = NULL, groups, covariate = NULL,
   if(gls) disp.args$x <- fitf$LM$Pcov %*% disp.args$x
   g.disp <- function(res, ind.i, x) {
     r <- res[ind.i, , drop = FALSE]
-    if(NCOL(r) > 1) d <- apply(r, 1, function(x) sum(x^2)) else
+    if(NCOL(r) > 1) d <- rowSums(r^2) else
       d <- r^2
     coef(lm.fit(as.matrix(x), d))
   }

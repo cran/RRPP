@@ -37,7 +37,7 @@
 #' @importFrom stats na.omit anova as.dist as.formula cmdscale coef delete.response dist formula lm lm.fit lm.wfit loess logLik model.frame.default model.matrix optimise prcomp qnorm quantile resid sd spline var model.frame terms reformulate fitted resid
 #' @importFrom graphics abline arrows axis legend lines par plot.default points text title
 #' @importFrom utils combn object.size setTxtProgressBar txtProgressBar
-#' @importFrom stats pnorm terms.formula
+#' @importFrom stats pnorm terms.formula p.adjust shapiro.test
 #' @export print.lm.rrpp
 #' @export summary.lm.rrpp
 #' @export print.summary.lm.rrpp
@@ -1894,32 +1894,41 @@ getSlopes <- function(fit, x, g){
 # after constraining covariates to mean values
 # used in pairwise
 getLSmeans <- function(fit, g){
+  
+  Xn <- model.matrix(~ g + 0)
+  Q <- QRforX(Xn)
+  H <- tcrossprod(fast.solve(Q$R), Q$Q)
+  
   beta <- fit$LM$random.coef
   k <- length(beta)
   beta <- beta[[k]]
   n <- fit$LM$n
   dat <- fit$LM$data
   covCheck <- sapply(dat, class)
-  for(i in 1:length(covCheck)) if(covCheck[i] == "numeric") 
+  for (i in 1:length(covCheck)) if (covCheck[i] == "numeric") 
     dat[[i]] <- mean(dat[[i]])
+  
   L <- model.matrix(fit$LM$Terms, data = dat)
-  L <- L[, colnames(L)  %in% rownames(beta[[1]]), drop = FALSE]
-  getFitted <- function(b) {
-    b <- b[rownames(b) %in% colnames(L), , drop = FALSE]
-    L %*% b
-  } 
-  fitted <- lapply(beta, getFitted)
-  Xn <- model.matrix(~ g + 0)
-  Q <- QRforX(Xn)
-  H <- tcrossprod(fast.solve(Q$R), Q$Q)
-  getCoef <- function(f) as.matrix(H %*% f)
-  means <- lapply(fitted, getCoef)
-  rename <- function(x) {
-    dimnames(x)[[1]] <- levels(g)
-    x
-  }
-  means <- lapply(means, rename)
-  names(means) <- c("obs", paste("iter", 1:(length(means) - 1), sep = "."))
+  L <- L[, colnames(L) %in% rownames(beta[[1]]), drop = FALSE]
+  L <- H %*% L
+  
+  keep <- which(rownames(beta[[1]]) %in% colnames(L))
+  if(length(keep) < ncol(L))
+    beta <- lapply(beta, function(b){
+      b <- b[keep, ]
+      b
+    })
+  Ls <- Matrix(L, sparse = TRUE)
+  if(length(Ls@x) < length(L)) L <- Ls
+  
+  means <- lapply(beta, function(b) {
+    m <- as.matrix(L %*% b)
+    dimnames(m)[[1]] <- levels(g)
+    m
+  })
+    
+  names(means) <- c("obs", paste("iter", 1:(length(means) - 
+                                              1), sep = "."))
   means
 }
 
@@ -1945,11 +1954,12 @@ vec.cor.matrix <- function(M) {
 # Pval.list
 # P-values across a list
 # used in pairwise
-Pval.list <- function(M){
-  
+Pval.list <- function(M, p.adjust.method){
+ 
   y <- sapply(M, function(x) as.vector(as.dist(x)))
   if(is.vector(y)) y <- matrix(y, 1, length(y))
   P <- apply(y, 1, pval)
+  P <- p.adjust(P, method = p.adjust.method)
   D <- as.dist(M[[1]])
   D[1:length(D)] <- P
   P <- as.matrix(D)
@@ -1986,8 +1996,8 @@ percentile.list <- function(M, confidence = 0.95){
 # d.summary.from.list
 # find distance statistics from a list
 # used in pairwise
-d.summary.from.list <- function(M, confidence = 0.95){
-  P <- Pval.list(M)
+d.summary.from.list <- function(M, confidence = 0.95, ...){
+  P <- Pval.list(M, ...)
   Z <- effect.list(M)
   CL <- percentile.list(M, confidence)
   list(D=M[[1]], P=P, Z=Z, CL=CL, confidence = confidence)
@@ -1996,7 +2006,7 @@ d.summary.from.list <- function(M, confidence = 0.95){
 # r.summary.from.list
 # find vec correlation statistics from a list
 # used in pairwise
-r.summary.from.list <- function(M, confidence = 0.95){
+r.summary.from.list <- function(M, confidence = 0.95,...){
   options(warn = -1)
   acos.mat <- function(x){
     a <- acos(x)
@@ -2005,7 +2015,7 @@ r.summary.from.list <- function(M, confidence = 0.95){
   }
   A <- lapply(M, acos.mat)
   options(warn = 0)
-  P <- Pval.list(A)
+  P <- Pval.list(A, ...)
   Z <- effect.list(A)
   aCL <- percentile.list(A, confidence)
   angle = A[[1]]

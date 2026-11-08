@@ -1,4 +1,17 @@
-# CHANGES IN RRPP 2.1.2.999
+# RRPP 2.2.5
+
+# CHANGES IN RRPP 2.2.1-5
+
+### NEW FEATURES
++ Added `p.adjust` to `pairwise` summaries.
+
+### BUG FIXES
++ Fixed issue with missing model matrix transformation for `pairwise`,
+if covariance matrices were used.
++ Fixed issue with subject permutations in `.lm.rrpp`.
++ Addressed some `powerTrans` issues for log-likelihood RRPP results.
+
+# CHANGES IN RRPP 2.2.0
 
 ### NEW FEATURES
 + New function, `lmm.rrpp`, which fits mixed models with RRPP.
